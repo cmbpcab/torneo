@@ -193,6 +193,8 @@
   }
   .match-card.live   { border:2px solid rgba(0,200,83,0.7); background:rgba(0,200,83,0.04); box-shadow:0 0 16px rgba(0,200,83,0.12); }
   .match-card.finished{ opacity:0.72; }
+  .match-card.finished.card-final   { opacity:1; }
+  .match-card.finished.card-tercero { opacity:1; }
   .match-card.pending { opacity:0.5; }
 
   .team { display:flex; flex-direction:column; gap:2px; }
@@ -204,6 +206,17 @@
   }
   .team.winner .team-name { color:var(--yellow); }
   .team-badge { font-size:0.62rem; color:var(--muted); letter-spacing:1px; }
+
+  .goals-list {
+    font-size:0.68rem;
+    color:var(--muted);
+    font-family:'Barlow Condensed', sans-serif;
+    letter-spacing:0.5px;
+    line-height:1.5;
+    margin-top:2px;
+    white-space:pre-line;
+  }
+  .team.winner .goals-list { color:rgba(255,214,0,0.7); }
 
   .score-block {
     display:flex; flex-direction:column; align-items:center; gap:3px;
@@ -219,7 +232,7 @@
   .match-time {
     font-size:0.6rem; font-family:'Barlow Condensed', sans-serif;
     letter-spacing:1.5px; color:var(--muted); text-transform:uppercase;
-    margin-bottom:1px;
+    margin-bottom:1px; text-align:center;
   }
 
   .match-status {
@@ -483,17 +496,18 @@
         const label1 = isFinal   && w1 ? `<div class="champion-label">Campeón</div>` : isFinal && !w1 && w2 ? `<div class="champion-label" style="color:#c0c8c1">2.º lugar</div>` : isTercero && w1 ? `<div class="bronze-label">3.er lugar</div>` : '';
         const label2 = isFinal   && w2 ? `<div class="champion-label">Campeón</div>` : isFinal && !w2 && w1 ? `<div class="champion-label" style="color:#c0c8c1">2.º lugar</div>` : isTercero && w2 ? `<div class="bronze-label">3.er lugar</div>` : '';
 
-        const extraClass = phase==='cuartos' ? 'card-cuartos' : phase==='semi' ? 'card-semi' : isFinal ? 'card-final' : isTercero ? 'card-tercero' : '';
+        const extraClass = phase==='cuartos' ? 'card-cuartos' : phase==='semi' ? 'card-semi' : phase==='final' ? 'card-final' : phase==='tercero' ? 'card-tercero' : '';
 
         html += `
           <div class="match-card ${m.status||'pending'} ${extraClass}">
             <div class="team ${w1?'winner':''}">
               ${crown1}
               <div class="team-name">${m.team1||'Equipo A'}</div>
+              ${m.goals1 ? `<div class="goals-list">${m.goals1}</div>` : ''}
               ${label1}
             </div>
             <div class="score-block">
-              <div class="match-time">${m.code ? `<span style="color:var(--yellow);font-weight:700;letter-spacing:1px">${m.code}</span>${m.time?' · '+m.time:''}` : (m.time||'')}</div>
+              <div class="match-time">${m.code ? `<span style="color:var(--yellow);font-weight:700;letter-spacing:1px">${m.code}</span>${m.time?'<br>'+m.time:''}` : (m.time||'')}</div>
               <div class="score-row">
                 <div class="score">${s1}</div>
                 <div class="score-sep">×</div>
@@ -504,6 +518,7 @@
             <div class="team right ${w2?'winner':''}">
               ${crown2}
               <div class="team-name">${m.team2||'Equipo B'}</div>
+              ${m.goals2 ? `<div class="goals-list">${m.goals2}</div>` : ''}
               ${label2}
             </div>
             ${pen}

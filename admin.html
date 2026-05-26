@@ -170,6 +170,9 @@
   @keyframes fadeUp{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
   .match-row.live-row{border-color:rgba(0,200,83,0.4);}
 
+  .row-final   { border-color: var(--yellow) !important; }
+  .row-tercero { border-color: rgba(180,130,60,0.6) !important; }
+
   .row-meta{
     display:flex;align-items:center;gap:8px;
     font-family:'Barlow Condensed',sans-serif;font-size:0.65rem;
@@ -216,6 +219,12 @@
   .edit-row.open { display:flex; }
   .edit-row-fields { display:grid;grid-template-columns:1fr 1fr;gap:8px; }
   .edit-row input[type=text] { font-size:0.85rem;padding:6px 10px; }
+
+  .edit-row textarea {
+    font-size:0.82rem; padding:6px 10px;
+    resize:vertical; min-height:52px;
+    font-family:'Barlow', sans-serif;
+  }
 
   /* next-match select */
   .next-row{
@@ -657,8 +666,10 @@
     const team1 = document.getElementById(`et1-${id}`).value.trim();
     const team2 = document.getElementById(`et2-${id}`).value.trim();
     const time  = document.getElementById(`eti-${id}`).value.trim();
-    const phase = document.getElementById(`eph-${id}`).value;
-    await update(ref(db, `matches/${cat}/${id}`), { team1, team2, time, phase });
+    const phase  = document.getElementById(`eph-${id}`).value;
+    const goals1 = document.getElementById(`eg1-${id}`).value.trim();
+    const goals2 = document.getElementById(`eg2-${id}`).value.trim();
+    await update(ref(db, `matches/${cat}/${id}`), { team1, team2, time, phase, goals1, goals2 });
     document.getElementById(`edit-${id}`).classList.remove('open');
     toast('✓ Partido actualizado');
   };
@@ -686,7 +697,7 @@
       const nextLabel = nextM ? `→ [${nextM.code||'?'}]` : '';
 
       return `
-      <div class="match-row ${m.status==='live'?'live-row':''}">
+      <div class="match-row ${m.status==='live'?'live-row':''} ${m.phase==='final'?'row-final':m.phase==='tercero'?'row-tercero':''}">
 
         <div class="row-meta">
           <span class="phase-tag">${PHASE_LABELS[m.phase]||m.phase}</span>
@@ -699,6 +710,7 @@
           <div class="team-label">
             ${m.team1||'Equipo A'}
             ${m.srcMatch1 ? `<div style="font-size:0.6rem;color:var(--muted);font-weight:400;letter-spacing:1px">${src1label}</div>` : ''}
+            ${m.goals1 ? `<div style="font-size:0.68rem;color:var(--muted);font-weight:400;letter-spacing:0.5px;line-height:1.5;margin-top:2px;white-space:pre-line">${m.goals1}</div>` : ''}
           </div>
           <div class="score-inputs">
             <input class="score-inp" id="s1-${id}" type="number" min="0" value="${m.score1??0}">
@@ -708,6 +720,7 @@
           <div class="team-label right">
             ${m.team2||'Equipo B'}
             ${m.srcMatch2 ? `<div style="font-size:0.6rem;color:var(--muted);font-weight:400;letter-spacing:1px">${src2label}</div>` : ''}
+            ${m.goals2 ? `<div style="font-size:0.68rem;color:var(--muted);font-weight:400;letter-spacing:0.5px;line-height:1.5;margin-top:2px;white-space:pre-line">${m.goals2}</div>` : ''}
           </div>
         </div>
 
@@ -747,6 +760,17 @@
                 <option value="final"   ${m.phase==='final'?'selected':''}>Final</option>
               </select>
             </div>
+            
+            <div class="field" style="grid-column:1/-1">
+              <label>Artilheiros — ${m.team1||'Equipo 1'}</label>
+              <textarea id="eg1-${id}">${m.goals1||''}</textarea>
+            </div>
+            <div class="field" style="grid-column:1/-1">
+              <label>Artilheiros — ${m.team2||'Equipo 2'}</label>
+              <textarea id="eg2-${id}">${m.goals2||''}</textarea>
+            </div>
+
+
           </div>
           <div style="display:flex;gap:8px;justify-content:flex-end">
             <button class="btn btn-sm btn-ghost"   onclick="toggleEdit('${id}')">Cancelar</button>
