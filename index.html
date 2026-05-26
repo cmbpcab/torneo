@@ -191,7 +191,7 @@
     from{opacity:0;transform:translateY(10px)}
     to{opacity:1;transform:none}
   }
-  .match-card.live   { border-color:rgba(0,200,83,0.45); background:rgba(0,200,83,0.03); }
+  .match-card.live   { border:2px solid rgba(0,200,83,0.7); background:rgba(0,200,83,0.04); box-shadow:0 0 16px rgba(0,200,83,0.12); }
   .match-card.finished{ opacity:0.72; }
   .match-card.pending { opacity:0.5; }
 
@@ -277,15 +277,25 @@
     .team-name{ font-size:0.9rem; }
   }
 
-  /* ── FINAL / TERCERO CARD ── */
+  /* ── CARD POR FASE (cores da bandeira paraguaia) ── */
+  .match-card.card-cuartos {
+    border-color: rgba(0,90,200,0.45);
+    background: linear-gradient(135deg, rgba(0,90,200,0.07) 0%, rgba(8,12,9,0) 60%);
+    opacity: 1 !important;
+  }
+  .match-card.card-semi {
+    border-color: rgba(220,220,220,0.35);
+    background: linear-gradient(135deg, rgba(220,220,220,0.05) 0%, rgba(8,12,9,0) 60%);
+    opacity: 1 !important;
+  }
   .match-card.card-final {
-    border-color: var(--yellow);
-    background: linear-gradient(135deg, rgba(255,214,0,0.07) 0%, rgba(8,12,9,0) 60%);
+    border-color: rgba(210,30,30,0.55);
+    background: linear-gradient(135deg, rgba(210,30,30,0.07) 0%, rgba(8,12,9,0) 60%);
     opacity: 1 !important;
   }
   .match-card.card-tercero {
-    border-color: rgba(180,130,60,0.5);
-    background: linear-gradient(135deg, rgba(180,130,60,0.07) 0%, rgba(8,12,9,0) 60%);
+    border-color: rgba(210,30,30,0.35);
+    background: linear-gradient(135deg, rgba(210,30,30,0.05) 0%, rgba(8,12,9,0) 60%);
     opacity: 1 !important;
   }
   .champion-crown { font-size:1rem; margin-bottom:2px; }
@@ -463,8 +473,8 @@
         const isTercero = phase === 'tercero' && m.status === 'finished';
         const s1  = m.status==='pending'?'–':(m.score1??0);
         const s2  = m.status==='pending'?'–':(m.score2??0);
-        const w1  = m.status==='finished' && Number(m.score1)>Number(m.score2);
-        const w2  = m.status==='finished' && Number(m.score2)>Number(m.score1);
+        const w1  = m.status==='finished' && (m.penalty ? Number(m.pen1)>Number(m.pen2) : Number(m.score1)>Number(m.score2));
+        const w2  = m.status==='finished' && (m.penalty ? Number(m.pen2)>Number(m.pen1) : Number(m.score2)>Number(m.score1));
         const pen = m.penalty?`<div class="penalty-note">Penales: ${m.pen1} × ${m.pen2}</div>`:'';
 
         const l1 = isFinal && !w1 && !w2;  // empate na final (segurança)
@@ -473,7 +483,7 @@
         const label1 = isFinal   && w1 ? `<div class="champion-label">Campeón</div>` : isFinal && !w1 && w2 ? `<div class="champion-label" style="color:#c0c8c1">2.º lugar</div>` : isTercero && w1 ? `<div class="bronze-label">3.er lugar</div>` : '';
         const label2 = isFinal   && w2 ? `<div class="champion-label">Campeón</div>` : isFinal && !w2 && w1 ? `<div class="champion-label" style="color:#c0c8c1">2.º lugar</div>` : isTercero && w2 ? `<div class="bronze-label">3.er lugar</div>` : '';
 
-        const extraClass = isFinal ? 'card-final' : isTercero ? 'card-tercero' : '';
+        const extraClass = phase==='cuartos' ? 'card-cuartos' : phase==='semi' ? 'card-semi' : isFinal ? 'card-final' : isTercero ? 'card-tercero' : '';
 
         html += `
           <div class="match-card ${m.status||'pending'} ${extraClass}">
