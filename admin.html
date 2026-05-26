@@ -554,7 +554,47 @@
 
   // ── SET STATUS + auto-progression ──
   window.setStatus = async function(cat, id, status) {
-    await update(ref(db, `matches/${cat}/${id}`), { status });
+    const resetData = status === 'pending'
+      ? { status, score1:0, score2:0, penalty:false, pen1:0, pen2:0 }
+      : { status };
+    await update(ref(db, `matches/${cat}/${id}`), resetData);
+
+    if (status === 'pending') {
+      const m = (window._matches[cat]||{})[id];
+      if (!m) return;
+      const allM = window._matches[cat] || {};
+
+      // Restaurar o placeholder na partida seguinte (vencedor)
+      if (m.nextMatch && (m.nextSlot === '1' || m.nextSlot === '2')) {
+        const nxt = allM[m.nextMatch];
+        if (nxt) {
+          const field = m.nextSlot === '1' ? 'team1' : 'team2';
+          const srcMatchField = m.nextSlot === '1' ? nxt.srcMatch1 : nxt.srcMatch2;
+          const srcSlotField  = m.nextSlot === '1' ? nxt.srcSlot1  : nxt.srcSlot2;
+          const isLos = srcSlotField === 'los1' || srcSlotField === 'los2';
+          const srcM  = allM[srcMatchField];
+          const placeholder = srcM ? `${isLos ? 'Per.' : 'Gan.'} [${srcM.code||'?'}]` : (isLos ? 'Per. [?]' : 'Gan. [?]');
+          await update(ref(db, `matches/${cat}/${m.nextMatch}`), { [field]: placeholder });
+        }
+      }
+
+      // Restaurar o placeholder na disputa por terceiro (perdedor)
+      if (m.nextMatchLoser && m.nextSlotLoser) {
+        const nxt = allM[m.nextMatchLoser];
+        if (nxt) {
+          const field = m.nextSlotLoser;
+          const srcMatchField = field === 'team1' ? nxt.srcMatch1 : nxt.srcMatch2;
+          const srcSlotField  = field === 'team1' ? nxt.srcSlot1  : nxt.srcSlot2;
+          const isLos = srcSlotField === 'los1' || srcSlotField === 'los2';
+          const srcM  = allM[srcMatchField];
+          const placeholder = srcM ? `${isLos ? 'Per.' : 'Gan.'} [${srcM.code||'?'}]` : 'Per. [?]';
+          await update(ref(db, `matches/${cat}/${m.nextMatchLoser}`), { [field]: placeholder });
+        }
+      }
+
+      toast('↺ Resetado');
+      return;
+    }
 
     if (status === 'finished') {
       const m = (window._matches[cat]||{})[id];
