@@ -216,7 +216,7 @@
   .edit-row.open { display:flex; }
   .edit-row-fields { display:grid;grid-template-columns:1fr 1fr;gap:8px; }
   .edit-row input[type=text] { font-size:0.85rem;padding:6px 10px; }
-    
+
   /* next-match select */
   .next-row{
     display:flex;align-items:center;gap:8px;flex-wrap:wrap;
@@ -253,8 +253,11 @@
 <!-- ── LOGIN ── -->
 <div id="login-screen">
   <div class="login-card">
-    <div>
-      <div class="login-logo">⚽ Torneo CMBP</div>
+    <div style="display:flex;flex-direction:column;align-items:center;gap:10px;">
+      <div style="border-radius:50%;background:radial-gradient(circle,rgba(255,214,0,0.12),transparent 70%);display:flex;align-items:center;justify-content:center;">
+        <img src="https://drive.google.com/thumbnail?id=1z7YF_c_1SWRJfv16VcnVUGGXmUxUCyrZ&sz=w80" alt="CMBP" style="width:56px;height:56px;object-fit:contain;">
+      </div>
+      <div class="login-logo">Torneo CMBP</div>
       <div class="login-sub">Panel de administración</div>
     </div>
     <div class="login-field">
@@ -274,7 +277,13 @@
 <div id="app-screen">
   <header>
     <div class="header-left">
-      <div class="logo">⚽ <span>Torneo CMBP</span></div>
+      <div class="emblem" style="border-radius:50%;background:radial-gradient(circle,rgba(255,214,0,0.12),transparent 70%);display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+        <img src="https://drive.google.com/thumbnail?id=1z7YF_c_1SWRJfv16VcnVUGGXmUxUCyrZ&sz=w80" alt="CMBP" style="width:44px;height:44px;object-fit:contain;">
+      </div>
+      <div style="display:flex;flex-direction:column;line-height:1;">
+        <div class="logo" style="font-size:1.6rem;">Torneo CMBP</div>
+        <div style="font-family:'Barlow Condensed',sans-serif;font-size:0.6rem;letter-spacing:3px;text-transform:uppercase;color:var(--muted);">Cooperación Militar Brasileña en el Paraguay</div>
+      </div>
       <div class="admin-badge">Admin</div>
     </div>
     <button class="btn-logout" id="logout-btn">Salir</button>
@@ -350,12 +359,20 @@
   const auth = getAuth(app);
 
   const CATEGORIES  = ['oficiales','femenino','suboficiales'];
-  const PHASE_LABELS = { cuartos:'Cuartos', semi:'Semifinal', tercero:'3.º lugar', final:'Final' };
+  const PHASE_LABELS = { cuartos:'Cuartos', semi:'Semifinal', tercero:'Tercer Puesto', final:'Final' };
   const CAT_CODE    = { oficiales:'OF', femenino:'FE', suboficiales:'SU' };
   const PHASE_CODE  = { cuartos:'C', semi:'SF', tercero:'3P', final:'F' };
 
   // ── AUTH ──
-  
+  onAuthStateChanged(auth, user => {
+    if (user) {
+      document.getElementById('login-screen').style.display = 'none';
+      document.getElementById('app-screen').style.display   = 'block';
+    } else {
+      document.getElementById('login-screen').style.display = 'flex';
+      document.getElementById('app-screen').style.display   = 'none';
+    }
+  });
 
   document.getElementById('login-btn').addEventListener('click', async () => {
     const email = document.getElementById('login-email').value.trim();
@@ -446,7 +463,7 @@
           <select id="phase-${cat}">
             <option value="cuartos">Cuartos</option>
             <option value="semi">Semifinal</option>
-            <option value="tercero">3.º lugar</option>
+            <option value="tercero">Tercer Puesto</option>
             <option value="final" selected>Final</option>
           </select>
         </div>
@@ -503,11 +520,22 @@
     });
 
     // write back: tell source matches they feed THIS new match
+    // 'los' slots → store in nextMatchLoser/nextSlotLoser to avoid overwriting the winner link
     if (srcMatch1) {
-      await update(ref(db, `matches/${cat}/${srcMatch1}`), { nextMatch: newRef.key, nextSlot:'1' });
+      const isLoser1 = srcSlot1 === 'los1';
+      if (isLoser1) {
+        await update(ref(db, `matches/${cat}/${srcMatch1}`), { nextMatchLoser: newRef.key, nextSlotLoser: 'team1' });
+      } else {
+        await update(ref(db, `matches/${cat}/${srcMatch1}`), { nextMatch: newRef.key, nextSlot: srcSlot1 });
+      }
     }
     if (srcMatch2) {
-      await update(ref(db, `matches/${cat}/${srcMatch2}`), { nextMatch: newRef.key, nextSlot:'2' });
+      const isLoser2 = srcSlot2 === 'los2';
+      if (isLoser2) {
+        await update(ref(db, `matches/${cat}/${srcMatch2}`), { nextMatchLoser: newRef.key, nextSlotLoser: 'team2' });
+      } else {
+        await update(ref(db, `matches/${cat}/${srcMatch2}`), { nextMatch: newRef.key, nextSlot: srcSlot2 });
+      }
     }
 
     toast('✓ Partido agregado');
@@ -530,7 +558,11 @@
 
     if (status === 'finished') {
       const m = (window._matches[cat]||{})[id];
-      if (!m || !m.nextMatch) { toast('✓ Finalizado'); return; }
+      console.log('🔍 match:', JSON.stringify(m));
+
+      if (!m || !m.nextMatch) { toast('✓ Finalizado (sem próximo)'); return; }
+
+      console.log('🔍 nextMatch:', m.nextMatch, '| nextSlot:', m.nextSlot);
 
       const s1 = m.score1 || 0;
       const s2 = m.score2 || 0;
@@ -541,28 +573,29 @@
         winner = s1 > s2 ? m.team1 : (s2 > s1 ? m.team2 : null);
       }
 
+      console.log('🔍 winner:', winner, '| s1:', s1, '| s2:', s2);
+
       if (winner) {
         const loser = winner === m.team1 ? m.team2 : m.team1;
+        console.log('🔍 loser:', loser);
 
-        // propagar vencedor
+        // Propagar VENCEDOR → final
         if (m.nextMatch && (m.nextSlot === '1' || m.nextSlot === '2')) {
           const field = m.nextSlot === '1' ? 'team1' : 'team2';
+          console.log('✅ propagando vencedor →', field, winner);
           await update(ref(db, `matches/${cat}/${m.nextMatch}`), { [field]: winner });
           toast(`✓ ${winner} → próximo partido`);
         }
 
-        // propagar perdedor
-        if (m.nextMatch && (m.nextSlot === 'los1' || m.nextSlot === 'los2')) {
-          const field = m.nextSlot === 'los1' ? 'team1' : 'team2';
-          await update(ref(db, `matches/${cat}/${m.nextMatch}`), { [field]: loser });
-          toast(`✓ ${loser} → disputa por 3.º lugar`);
+        // Propagar PERDEDOR → disputa por Tercer Puesto
+        if (m.nextMatchLoser && m.nextSlotLoser) {
+          console.log('✅ propagando perdedor →', m.nextSlotLoser, loser);
+          await update(ref(db, `matches/${cat}/${m.nextMatchLoser}`), { [m.nextSlotLoser]: loser });
+          toast(`✓ ${loser} → disputa por Tercer Puesto`);
         }
-
       } else {
         toast('⚠ Empate — definir ganador manualmente');
       }
-    } else {
-      toast(status === 'live' ? '● En vivo' : '⏸ En espera');
     }
   };
 
@@ -574,21 +607,21 @@
   };
 
   // ── TOGGLE EDIT PANEL ──
-window.toggleEdit = function(id) {
-  const el = document.getElementById(`edit-${id}`);
-  el.classList.toggle('open');
-};
+  window.toggleEdit = function(id) {
+    const el = document.getElementById(`edit-${id}`);
+    el.classList.toggle('open');
+  };
 
-// ── SAVE EDIT ──
-window.saveEdit = async function(cat, id) {
-  const team1 = document.getElementById(`et1-${id}`).value.trim();
-  const team2 = document.getElementById(`et2-${id}`).value.trim();
-  const time  = document.getElementById(`eti-${id}`).value.trim();
-  const phase = document.getElementById(`eph-${id}`).value;
-  await update(ref(db, `matches/${cat}/${id}`), { team1, team2, time, phase });
-  document.getElementById(`edit-${id}`).classList.remove('open');
-  toast('✓ Partido actualizado');
-};
+  // ── SAVE EDIT ──
+  window.saveEdit = async function(cat, id) {
+    const team1 = document.getElementById(`et1-${id}`).value.trim();
+    const team2 = document.getElementById(`et2-${id}`).value.trim();
+    const time  = document.getElementById(`eti-${id}`).value.trim();
+    const phase = document.getElementById(`eph-${id}`).value;
+    await update(ref(db, `matches/${cat}/${id}`), { team1, team2, time, phase });
+    document.getElementById(`edit-${id}`).classList.remove('open');
+    toast('✓ Partido actualizado');
+  };
 
   // ── RENDER MATCH LIST ──
   function render(cat, matches) {
@@ -670,7 +703,7 @@ window.saveEdit = async function(cat, id) {
               <select id="eph-${id}">
                 <option value="cuartos" ${m.phase==='cuartos'?'selected':''}>Cuartos</option>
                 <option value="semi"    ${m.phase==='semi'?'selected':''}>Semifinal</option>
-                <option value="tercero" ${m.phase==='tercero'?'selected':''}>3.º lugar</option>
+                <option value="tercero" ${m.phase==='tercero'?'selected':''}>Tercer Puesto</option>
                 <option value="final"   ${m.phase==='final'?'selected':''}>Final</option>
               </select>
             </div>
@@ -685,23 +718,9 @@ window.saveEdit = async function(cat, id) {
     }).join('');
   }
 
-  let listenersStarted = false;
-
-  onAuthStateChanged(auth, user => {
-    if (user) {
-      document.getElementById('login-screen').style.display = 'none';
-      document.getElementById('app-screen').style.display   = 'block';
-      if (!listenersStarted) {
-        listenersStarted = true;
-        CATEGORIES.forEach(cat => {
-          renderForm(cat);
-          onValue(ref(db, `matches/${cat}`), snap => render(cat, snap.val()));
-        });
-      }
-    } else {
-      document.getElementById('login-screen').style.display = 'flex';
-      document.getElementById('app-screen').style.display   = 'none';
-    }
+  CATEGORIES.forEach(cat => {
+    renderForm(cat); // render empty form immediately
+    onValue(ref(db, `matches/${cat}`), snap => render(cat, snap.val()));
   });
 </script>
 </body>

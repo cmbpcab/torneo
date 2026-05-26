@@ -55,12 +55,10 @@
   .header-left { display:flex; align-items:center; gap:14px; }
 
   .emblem {
-    width:44px; height:44px;
     border-radius:50%;
-    border: 2px solid var(--yellow);
     background: radial-gradient(circle, rgba(255,214,0,0.12), transparent 70%);
     display:flex; align-items:center; justify-content:center;
-    font-size:1.4rem; flex-shrink:0;
+    flex-shrink:0;
   }
 
   .logo-text {
@@ -278,13 +276,88 @@
     .score{ font-size:2.2rem; }
     .team-name{ font-size:0.9rem; }
   }
+
+  /* ── FINAL / TERCERO CARD ── */
+  .match-card.card-final {
+    border-color: var(--yellow);
+    background: linear-gradient(135deg, rgba(255,214,0,0.07) 0%, rgba(8,12,9,0) 60%);
+    opacity: 1 !important;
+  }
+  .match-card.card-tercero {
+    border-color: rgba(180,130,60,0.5);
+    background: linear-gradient(135deg, rgba(180,130,60,0.07) 0%, rgba(8,12,9,0) 60%);
+    opacity: 1 !important;
+  }
+  .champion-crown { font-size:1rem; margin-bottom:2px; }
+  .champion-label {
+    font-family:'Barlow Condensed', sans-serif;
+    font-size:0.6rem; letter-spacing:2px; text-transform:uppercase;
+    color:var(--yellow); margin-top:2px;
+  }
+  .bronze-label {
+    font-family:'Barlow Condensed', sans-serif;
+    font-size:0.6rem; letter-spacing:2px; text-transform:uppercase;
+    color:#b4823c; margin-top:2px;
+  }
+
+  /* ── PÓDIO TAB ── */
+  .tab.tab-podio { border-color: rgba(255,214,0,0.4); color: var(--yellow-dim); }
+  .tab.tab-podio.active { background:var(--yellow); color:#000; }
+
+  .podio-grid {
+    display:flex; flex-direction:column; gap:1.2rem;
+    padding-top:0.5rem;
+  }
+  .podio-category {
+    background:var(--surface);
+    border:1px solid var(--border-y);
+    border-radius:12px;
+    padding:1.2rem 1.4rem;
+  }
+  .podio-cat-title {
+    font-family:'Bebas Neue', sans-serif;
+    font-size:1rem; letter-spacing:3px; text-transform:uppercase;
+    color:var(--yellow); margin-bottom:1rem;
+    display:flex; align-items:center; gap:10px;
+  }
+  .podio-cat-title::after {
+    content:''; flex:1; height:1px; background:var(--border-y);
+  }
+  .podio-row {
+    display:flex; align-items:center; gap:14px;
+    padding:0.6rem 0;
+    border-bottom:1px solid var(--border);
+  }
+  .podio-row:last-child { border-bottom:none; }
+  .podio-medal { font-size:1.5rem; width:2rem; text-align:center; flex-shrink:0; }
+  .podio-team {
+    font-family:'Barlow Condensed', sans-serif;
+    font-size:1.1rem; font-weight:700; letter-spacing:0.5px;
+    text-transform:uppercase;
+  }
+  .podio-team.gold   { color:var(--yellow); }
+  .podio-team.silver { color:#c0c8c1; }
+  .podio-team.bronze { color:#b4823c; }
+  .podio-pending {
+    font-family:'Barlow Condensed', sans-serif;
+    font-size:0.8rem; color:var(--muted); letter-spacing:1px;
+    font-style:italic;
+  }
+  .podio-empty {
+    text-align:center; padding:2rem 1rem;
+    color:var(--muted); font-family:'Barlow Condensed', sans-serif;
+    letter-spacing:1px; font-size:0.85rem;
+  }
+
 </style>
 </head>
 <body>
 
 <header>
   <div class="header-left">
-    <div class="emblem">⚽</div>
+    <div class="emblem">
+      <img src="https://drive.google.com/thumbnail?id=1z7YF_c_1SWRJfv16VcnVUGGXmUxUCyrZ&sz=w80" alt="CMBP" style="width:44px;height:44px;object-fit:contain;">
+    </div>
     <div class="logo-text">
       <div class="logo-main">Torneo CMBP</div>
       <div class="logo-sub">Cooperación Militar Brasileña en el Paraguay</div>
@@ -300,19 +373,21 @@
     <div class="flag-stripe g"></div>
   </div>
   <div class="hero-title">Torneo CMBP</div>
-  <div class="hero-sub">Integración · Cooperación · Amistad</div>
+  <div class="hero-sub">Cooperación · Integración · Amistad</div>
 </div>
 
 <div class="tabs-wrap">
   <button class="tab active" onclick="showCategory('oficiales',this)">Oficiales</button>
   <button class="tab" onclick="showCategory('femenino',this)">Femenino</button>
   <button class="tab" onclick="showCategory('suboficiales',this)">Suboficiales</button>
+  <button class="tab tab-podio" id="tab-podio" onclick="showCategory('podio',this)" style="display:none">🏆 Pódio</button>
 </div>
 
 <main>
   <div id="cat-oficiales"    class="category-panel active"><div class="loader"><div class="loader-ring"></div>Cargando...</div></div>
-  <div id="cat-femenino"     class="category-panel"><div class="empty-state"><div class="empty-icon">⚽</div>Cargando...</div></div>
-  <div id="cat-suboficiales" class="category-panel"><div class="empty-state"><div class="empty-icon">⚽</div>Cargando...</div></div>
+  <div id="cat-femenino"     class="category-panel"><div class="empty-state"><div class="empty-icon"><img src="https://drive.google.com/thumbnail?id=1z7YF_c_1SWRJfv16VcnVUGGXmUxUCyrZ&sz=w60" style="width:48px;opacity:0.5"></div>Cargando...</div></div>
+  <div id="cat-suboficiales" class="category-panel"><div class="empty-state"><div class="empty-icon"><img src="https://drive.google.com/thumbnail?id=1z7YF_c_1SWRJfv16VcnVUGGXmUxUCyrZ&sz=w60" style="width:48px;opacity:0.5"></div>Cargando...</div></div>
+  <div id="cat-podio" class="category-panel"><div class="podio-empty">Cargando resultados...</div></div>
 </main>
 
 <footer id="last-update">Actualizando...</footer>
@@ -354,10 +429,23 @@
     return `<span class="match-status s-pending">Por jugar</span>`;
   }
 
+  function getWinner(m) {
+    if (m.status !== 'finished') return null;
+    if (m.penalty) return m.pen1 > m.pen2 ? m.team1 : m.team2;
+    if (Number(m.score1) > Number(m.score2)) return m.team1;
+    if (Number(m.score2) > Number(m.score1)) return m.team2;
+    return null;
+  }
+  function getLoser(m) {
+    const w = getWinner(m);
+    if (!w) return null;
+    return w === m.team1 ? m.team2 : m.team1;
+  }
+
   function renderCategory(catId, matches) {
     const el = document.getElementById('cat-'+catId);
     if (!matches || !Object.keys(matches).length) {
-      el.innerHTML = `<div class="empty-state"><div class="empty-icon">⚽</div>Sin partidos registrados aún.</div>`;
+      el.innerHTML = `<div class="empty-state"><div class="empty-icon"><img src="https://drive.google.com/thumbnail?id=1z7YF_c_1SWRJfv16VcnVUGGXmUxUCyrZ&sz=w60" style="width:48px;opacity:0.5"></div>Sin partidos registrados aún.</div>`;
       return;
     }
     const byPhase = {};
@@ -371,15 +459,28 @@
       const list = byPhase[phase].sort((a,b)=>(a.order||0)-(b.order||0));
       html += `<div class="phase-title">${PHASE_LABELS[phase]||phase}</div><div class="matches">`;
       list.forEach(m => {
+        const isFinal   = phase === 'final'   && m.status === 'finished';
+        const isTercero = phase === 'tercero' && m.status === 'finished';
         const s1  = m.status==='pending'?'–':(m.score1??0);
         const s2  = m.status==='pending'?'–':(m.score2??0);
         const w1  = m.status==='finished' && Number(m.score1)>Number(m.score2);
         const w2  = m.status==='finished' && Number(m.score2)>Number(m.score1);
         const pen = m.penalty?`<div class="penalty-note">Penales: ${m.pen1} × ${m.pen2}</div>`:'';
+
+        const l1 = isFinal && !w1 && !w2;  // empate na final (segurança)
+        const crown1 = isFinal   && w1 ? `<div class="champion-crown">👑</div>` : isFinal && !w1 && w2 ? `<div class="champion-crown">🥈</div>` : isTercero && w1 ? `<div class="champion-crown">🥉</div>` : '';
+        const crown2 = isFinal   && w2 ? `<div class="champion-crown">👑</div>` : isFinal && !w2 && w1 ? `<div class="champion-crown">🥈</div>` : isTercero && w2 ? `<div class="champion-crown">🥉</div>` : '';
+        const label1 = isFinal   && w1 ? `<div class="champion-label">Campeón</div>` : isFinal && !w1 && w2 ? `<div class="champion-label" style="color:#c0c8c1">2.º lugar</div>` : isTercero && w1 ? `<div class="bronze-label">3.er lugar</div>` : '';
+        const label2 = isFinal   && w2 ? `<div class="champion-label">Campeón</div>` : isFinal && !w2 && w1 ? `<div class="champion-label" style="color:#c0c8c1">2.º lugar</div>` : isTercero && w2 ? `<div class="bronze-label">3.er lugar</div>` : '';
+
+        const extraClass = isFinal ? 'card-final' : isTercero ? 'card-tercero' : '';
+
         html += `
-          <div class="match-card ${m.status||'pending'}">
+          <div class="match-card ${m.status||'pending'} ${extraClass}">
             <div class="team ${w1?'winner':''}">
+              ${crown1}
               <div class="team-name">${m.team1||'Equipo A'}</div>
+              ${label1}
             </div>
             <div class="score-block">
               <div class="match-time">${m.code ? `<span style="color:var(--yellow);font-weight:700;letter-spacing:1px">${m.code}</span>${m.time?' · '+m.time:''}` : (m.time||'')}</div>
@@ -391,7 +492,9 @@
               ${statusEl(m.status)}
             </div>
             <div class="team right ${w2?'winner':''}">
+              ${crown2}
               <div class="team-name">${m.team2||'Equipo B'}</div>
+              ${label2}
             </div>
             ${pen}
           </div>`;
@@ -401,9 +504,49 @@
     el.innerHTML = html;
   }
 
+  const CAT_LABELS = { oficiales:'Oficiales', femenino:'Femenino', suboficiales:'Suboficiales' };
+  const allMatches = {};
+
+  function renderPodio() {
+    const el = document.getElementById('cat-podio');
+    let hasAny = false;
+    let html = '<div class="podio-grid">';
+    CATEGORIES.forEach(cat => {
+      const matches = allMatches[cat] || {};
+      const finalM   = Object.values(matches).find(m => m.phase === 'final'   && m.status === 'finished');
+      const terceroM = Object.values(matches).find(m => m.phase === 'tercero' && m.status === 'finished');
+      if (!finalM && !terceroM) return;
+      hasAny = true;
+      const champion  = finalM   ? getWinner(finalM)  : null;
+      const runner    = finalM   ? getLoser(finalM)   : null;
+      const third     = terceroM ? getWinner(terceroM) : null;
+      html += `
+        <div class="podio-category">
+          <div class="podio-cat-title">${CAT_LABELS[cat]||cat}</div>
+          <div class="podio-row">
+            <div class="podio-medal">🥇</div>
+            <div class="podio-team gold">${champion || '<span class="podio-pending">Por definir</span>'}</div>
+          </div>
+          <div class="podio-row">
+            <div class="podio-medal">🥈</div>
+            <div class="podio-team silver">${runner || '<span class="podio-pending">Por definir</span>'}</div>
+          </div>
+          <div class="podio-row">
+            <div class="podio-medal">🥉</div>
+            <div class="podio-team bronze">${third || '<span class="podio-pending">Por definir</span>'}</div>
+          </div>
+        </div>`;
+    });
+    html += '</div>';
+    el.innerHTML = hasAny ? html : '<div class="podio-empty">Los resultados finales aparecerán aquí.</div>';
+    document.getElementById('tab-podio').style.display = hasAny ? '' : 'none';
+  }
+
   CATEGORIES.forEach(cat => {
     onValue(ref(db, `matches/${cat}`), snap => {
-      renderCategory(cat, snap.val());
+      allMatches[cat] = snap.val() || {};
+      renderCategory(cat, allMatches[cat]);
+      renderPodio();
       const now = new Date().toLocaleTimeString('es-PY',{hour:'2-digit',minute:'2-digit'});
       document.getElementById('last-update').textContent = `Última actualización: ${now}`;
     });
