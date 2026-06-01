@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Torneo CMBP · Marcador</title>
+<title>Torneo de Fútbol CMBP · Marcador</title>
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Barlow:wght@400;600;700&family=Barlow+Condensed:wght@500;600;700&display=swap" rel="stylesheet">
 <style>
   :root {
@@ -153,6 +153,14 @@
     padding:1.5rem;
   }
 
+  /* Goleadores panel breaks out of the 680px cap */
+  #cat-goleadores {
+    width: calc(100vw - 3rem);
+    max-width: 1020px;
+    margin-left: 50%;
+    transform: translateX(-50%);
+  }
+
   .category-panel { display:none; }
   .category-panel.active { display:block; }
 
@@ -245,10 +253,20 @@
   .s-pending  { background:rgba(255,214,0,0.1);  color:var(--yellow); }
 
   .penalty-note {
-    grid-column:1/-1; text-align:center;
-    font-size:0.65rem; color:var(--muted); letter-spacing:1px;
-    font-family:'Barlow Condensed', sans-serif; text-transform:uppercase;
-    margin-top:-4px;
+    text-align:center;
+    font-family:'Bebas Neue', sans-serif;
+    font-size:1.2rem; letter-spacing:2px; color:var(--yellow); line-height:1;
+    margin-top:5px;
+    background:rgba(255,214,0,0.08);
+    border:1px solid rgba(255,214,0,0.22);
+    border-radius:6px;
+    padding:3px 10px;
+    white-space:nowrap;
+  }
+  .pen-label {
+    font-family:'Barlow Condensed', sans-serif;
+    font-size:0.58rem; text-transform:uppercase; letter-spacing:2px;
+    vertical-align:middle; opacity:0.75; color:var(--muted);
   }
 
   .empty-state {
@@ -282,12 +300,46 @@
   }
   @keyframes spin{ to{transform:rotate(360deg)} }
 
-  @media(max-width:480px){
-    .hero-title{ font-size:2.2rem; letter-spacing:4px; }
-    .tabs-wrap{ gap:4px; }
-    .tab{ padding:6px 14px; font-size:0.72rem; }
-    .score{ font-size:2.2rem; }
-    .team-name{ font-size:0.9rem; }
+  /* ── MOBILE ── */
+  @media(max-width:600px){
+    /* Header */
+    header { height:auto; padding:0.65rem 1rem; }
+    .emblem img { width:36px; height:36px; }
+    .logo-main { font-size:1.15rem; letter-spacing:2px; }
+    .logo-sub  { display:none; }
+    .live-badge{ font-size:0.62rem; padding:3px 9px; }
+
+    /* Hero */
+    .hero { padding:1.4rem 1rem 1rem; }
+    .hero-title { font-size:clamp(1.7rem,7vw,2.6rem); letter-spacing:3px; }
+    .hero-sub   { font-size:0.62rem; letter-spacing:3px; }
+
+    /* Tabs */
+    .tabs-wrap { padding:0.75rem 0.75rem 0; gap:4px; flex-wrap:wrap; justify-content:center; }
+    .tab { padding:5px 12px; font-size:0.7rem; letter-spacing:1.5px; }
+
+    /* Main content */
+    main { padding:1rem 0.75rem; }
+
+    /* Match cards */
+    .match-card { padding:0.65rem 0.75rem; gap:0.5rem; }
+    .team-name  { font-size:0.82rem; }
+    .score      { font-size:2rem; min-width:1.2ch; }
+    .score-sep  { font-size:1.3rem; }
+    .goals-list { font-size:0.62rem; }
+    .penalty-note { font-size:1rem; padding:2px 7px; }
+    .match-time { font-size:0.56rem; }
+    .match-status { font-size:0.56rem; }
+
+    /* Phase titles */
+    .phase-title { font-size:0.75rem; margin:1rem 0 0.5rem; }
+  }
+
+  @media(max-width:360px){
+    .logo-main { font-size:1rem; }
+    .team-name { font-size:0.75rem; }
+    .score     { font-size:1.75rem; }
+    .tab       { padding:4px 9px; font-size:0.65rem; }
   }
 
   /* ── CARD POR FASE (cores da bandeira paraguaia) ── */
@@ -327,9 +379,86 @@
   .tab.tab-podio { border-color: rgba(255,214,0,0.4); color: var(--yellow-dim); }
   .tab.tab-podio.active { background:var(--yellow); color:#000; }
 
+  /* ── GOLEADORES TAB ── */
+  .tab.tab-gol { border-color: rgba(0,200,83,0.35); color: var(--green-dim); }
+  .tab.tab-gol.active { background: var(--green); color:#000; border-color:var(--green); }
+
+  /* ── GOLEADORES PANEL ── */
+  .gol-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 1rem;
+    padding-top: 0.5rem;
+    align-items: start;
+  }
+  .gol-category {
+    background: var(--surface);
+    border: 1px solid rgba(0,200,83,0.2);
+    border-radius: 12px;
+    padding: 1rem 1.1rem;
+  }
+  .gol-cat-title {
+    font-family:'Bebas Neue', sans-serif;
+    font-size: 0.9rem; letter-spacing: 3px; text-transform: uppercase;
+    color: var(--green); margin-bottom: 0.85rem;
+    padding-bottom: 0.5rem;
+    border-bottom: 1px solid rgba(0,200,83,0.15);
+    display: flex; align-items: center; gap: 8px;
+  }
+  .gol-row {
+    display: grid;
+    grid-template-columns: 2rem 1fr auto;
+    align-items: center; gap: 6px;
+    padding: 0.45rem 0;
+    border-bottom: 1px solid var(--border);
+  }
+  .gol-row:last-child { border-bottom: none; }
+  .gol-rank {
+    font-family:'Bebas Neue', sans-serif; font-size: 1.1rem;
+    color: var(--muted); text-align: center; line-height: 1;
+  }
+  .gol-rank.r1 { color: var(--yellow); font-size: 1.25rem; }
+  .gol-rank.r2 { color: #c0c8c1; }
+  .gol-rank.r3 { color: #b4823c; }
+  .gol-player {
+    font-family:'Barlow Condensed', sans-serif;
+    font-weight: 700; font-size: 0.85rem; letter-spacing: 0.5px;
+    text-transform: uppercase; line-height: 1.2;
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  }
+  .gol-team {
+    font-size: 0.6rem; color: var(--muted); letter-spacing: 1px;
+    margin-top: 1px; text-transform: uppercase;
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  }
+  .gol-count {
+    font-family:'Bebas Neue', sans-serif; font-size: 1.6rem;
+    color: var(--green); min-width: 1.6ch; text-align: right; line-height: 1;
+  }
+  .gol-empty {
+    text-align: center; padding: 2.5rem 1rem;
+    color: var(--muted); font-family:'Barlow Condensed', sans-serif;
+    letter-spacing: 1px; font-size: 0.9rem;
+  }
+  @media(max-width: 680px) {
+    .gol-grid  { grid-template-columns: 1fr; }
+    #cat-goleadores { width: auto; transform: none; margin-left: 0; }
+    .podio-grid { grid-template-columns: 1fr; }
+    #cat-podio  { width: auto; transform: none; margin-left: 0; }
+  }
+
   .podio-grid {
-    display:flex; flex-direction:column; gap:1.2rem;
+    display:grid;
+    grid-template-columns:repeat(3,1fr);
+    gap:1rem;
     padding-top:0.5rem;
+    align-items:start;
+  }
+  #cat-podio {
+    width:calc(100vw - 3rem);
+    max-width:1020px;
+    margin-left:50%;
+    transform:translateX(-50%);
   }
   .podio-category {
     background:var(--surface);
@@ -382,7 +511,7 @@
       <img src="https://drive.google.com/thumbnail?id=1z7YF_c_1SWRJfv16VcnVUGGXmUxUCyrZ&sz=w80" alt="CMBP" style="width:44px;height:44px;object-fit:contain;">
     </div>
     <div class="logo-text">
-      <div class="logo-main">Torneo CMBP</div>
+      <div class="logo-main">Torneo de Fútbol CMBP</div>
       <div class="logo-sub">Cooperación Militar Brasileña en el Paraguay</div>
     </div>
   </div>
@@ -395,7 +524,7 @@
     <div class="flag-stripe y"></div>
     <div class="flag-stripe g"></div>
   </div>
-  <div class="hero-title">Torneo CMBP</div>
+  <div class="hero-title">Torneo de Fútbol CMBP</div>
   <div class="hero-sub">Cooperación · Integración · Amistad</div>
 </div>
 
@@ -404,6 +533,7 @@
   <button class="tab" onclick="showCategory('femenino',this)">Femenino</button>
   <button class="tab" onclick="showCategory('suboficiales',this)">Suboficiales</button>
   <button class="tab tab-podio" id="tab-podio" onclick="showCategory('podio',this)" style="display:none">🏆 Pódio</button>
+  <button class="tab tab-gol" id="tab-gol" onclick="showCategory('goleadores',this)">⚽ Goleadores</button>
 </div>
 
 <main>
@@ -411,6 +541,7 @@
   <div id="cat-femenino"     class="category-panel"><div class="empty-state"><div class="empty-icon"><img src="https://drive.google.com/thumbnail?id=1z7YF_c_1SWRJfv16VcnVUGGXmUxUCyrZ&sz=w60" style="width:48px;opacity:0.5"></div>Cargando...</div></div>
   <div id="cat-suboficiales" class="category-panel"><div class="empty-state"><div class="empty-icon"><img src="https://drive.google.com/thumbnail?id=1z7YF_c_1SWRJfv16VcnVUGGXmUxUCyrZ&sz=w60" style="width:48px;opacity:0.5"></div>Cargando...</div></div>
   <div id="cat-podio" class="category-panel"><div class="podio-empty">Cargando resultados...</div></div>
+  <div id="cat-goleadores" class="category-panel"><div class="gol-empty">Cargando goleadores...</div></div>
 </main>
 
 <footer id="last-update">Actualizando...</footer>
@@ -454,7 +585,7 @@
 
   function getWinner(m) {
     if (m.status !== 'finished') return null;
-    if (m.penalty) return m.pen1 > m.pen2 ? m.team1 : m.team2;
+    if (m.penalty) return Number(m.pen1) > Number(m.pen2) ? m.team1 : m.team2;
     if (Number(m.score1) > Number(m.score2)) return m.team1;
     if (Number(m.score2) > Number(m.score1)) return m.team2;
     return null;
@@ -488,9 +619,6 @@
         const s2  = m.status==='pending'?'–':(m.score2??0);
         const w1  = m.status==='finished' && (m.penalty ? Number(m.pen1)>Number(m.pen2) : Number(m.score1)>Number(m.score2));
         const w2  = m.status==='finished' && (m.penalty ? Number(m.pen2)>Number(m.pen1) : Number(m.score2)>Number(m.score1));
-        const pen = m.penalty?`<div class="penalty-note">Penales: ${m.pen1} × ${m.pen2}</div>`:'';
-
-        const l1 = isFinal && !w1 && !w2;  // empate na final (segurança)
         const crown1 = isFinal   && w1 ? `<div class="champion-crown">👑</div>` : isFinal && !w1 && w2 ? `<div class="champion-crown">🥈</div>` : isTercero && w1 ? `<div class="champion-crown">🥉</div>` : '';
         const crown2 = isFinal   && w2 ? `<div class="champion-crown">👑</div>` : isFinal && !w2 && w1 ? `<div class="champion-crown">🥈</div>` : isTercero && w2 ? `<div class="champion-crown">🥉</div>` : '';
         const label1 = isFinal   && w1 ? `<div class="champion-label">Campeón</div>` : isFinal && !w1 && w2 ? `<div class="champion-label" style="color:#c0c8c1">2.º lugar</div>` : isTercero && w1 ? `<div class="bronze-label">3.er lugar</div>` : '';
@@ -503,7 +631,7 @@
             <div class="team ${w1?'winner':''}">
               ${crown1}
               <div class="team-name">${m.team1||'Equipo A'}</div>
-              ${m.goals1 ? `<div class="goals-list">${m.goals1}</div>` : ''}
+              ${m.goals1 ? `<div class="goals-list">${compactGoals(m.goals1)}</div>` : ''}
               ${label1}
             </div>
             <div class="score-block">
@@ -513,15 +641,15 @@
                 <div class="score-sep">×</div>
                 <div class="score">${s2}</div>
               </div>
+              ${m.penalty ? `<div class="penalty-note">${m.pen1} × ${m.pen2} <span class="pen-label">pen.</span></div>` : ''}
               ${statusEl(m.status)}
             </div>
             <div class="team right ${w2?'winner':''}">
               ${crown2}
               <div class="team-name">${m.team2||'Equipo B'}</div>
-              ${m.goals2 ? `<div class="goals-list">${m.goals2}</div>` : ''}
+              ${m.goals2 ? `<div class="goals-list">${compactGoals(m.goals2)}</div>` : ''}
               ${label2}
             </div>
-            ${pen}
           </div>`;
       });
       html += `</div>`;
@@ -532,19 +660,81 @@
   const CAT_LABELS = { oficiales:'Oficiales', femenino:'Femenino', suboficiales:'Suboficiales' };
   const allMatches = {};
 
+  function toArr(val) {
+    if (!val) return [];
+    return Array.isArray(val) ? val : Object.values(val);
+  }
+
+  // Groups repeated goal-scorer names: "Benites\nBenites\nLopez" → "Benites (2)\nLopez"
+  function compactGoals(text) {
+    if (!text) return '';
+    const counts = {}, order = [];
+    text.split('\n').forEach(raw => {
+      const n = raw.trim();
+      if (!n) return;
+      if (!counts[n]) { counts[n] = 0; order.push(n); }
+      counts[n]++;
+    });
+    return order.map(n => counts[n] > 1 ? `${n} (${counts[n]})` : n).join('\n');
+  }
+
+  function renderGoleadores() {
+    const el = document.getElementById('cat-goleadores');
+    if (!el) return;
+    let html = '<div class="gol-grid">';
+
+    CATEGORIES.forEach(cat => {
+      const scorers = {};
+      Object.values(allMatches[cat] || {}).forEach(m => {
+        toArr(m.goalsData).forEach(g => {
+          if (g.ownGoal) return;
+          const team = g.teamSlot == 1 ? (m.team1 || '?') : (m.team2 || '?');
+          const key  = `${g.player}||${team}`;
+          scorers[key] = (scorers[key] || 0) + 1;
+        });
+      });
+
+      const list = Object.entries(scorers)
+        .map(([k, count]) => { const [player, team] = k.split('||'); return { player, team, count }; })
+        .sort((a, b) => b.count - a.count);
+
+      html += `<div class="gol-category">
+        <div class="gol-cat-title">⚽ ${CAT_LABELS[cat]}</div>`;
+      if (!list.length) {
+        html += `<div style="color:var(--muted);font-family:'Barlow Condensed',sans-serif;font-size:0.75rem;letter-spacing:1px;padding:0.8rem 0;text-align:center;">Sin goles registrados</div>`;
+      } else {
+        list.forEach(({ player, team, count }, i) => {
+          const rankClass = i === 0 ? 'r1' : i === 1 ? 'r2' : i === 2 ? 'r3' : '';
+          const rankLabel = i === 0 ? '🥇' : i === 1 ? '🥈' : i === 2 ? '🥉' : String(i + 1);
+          html += `<div class="gol-row">
+            <div class="gol-rank ${rankClass}">${rankLabel}</div>
+            <div>
+              <div class="gol-player">${player}</div>
+              <div class="gol-team">${team}</div>
+            </div>
+            <div class="gol-count">${count}</div>
+          </div>`;
+        });
+      }
+      html += `</div>`;
+    });
+
+    html += '</div>';
+    el.innerHTML = html;
+  }
+
   function renderPodio() {
     const el = document.getElementById('cat-podio');
     let hasAny = false;
     let html = '<div class="podio-grid">';
     CATEGORIES.forEach(cat => {
-      const matches = allMatches[cat] || {};
+      const matches  = allMatches[cat] || {};
       const finalM   = Object.values(matches).find(m => m.phase === 'final'   && m.status === 'finished');
       const terceroM = Object.values(matches).find(m => m.phase === 'tercero' && m.status === 'finished');
-      if (!finalM && !terceroM) return;
-      hasAny = true;
-      const champion  = finalM   ? getWinner(finalM)  : null;
-      const runner    = finalM   ? getLoser(finalM)   : null;
-      const third     = terceroM ? getWinner(terceroM) : null;
+      if (finalM || terceroM) hasAny = true;
+      const champion = finalM   ? getWinner(finalM)   : null;
+      const runner   = finalM   ? getLoser(finalM)    : null;
+      const third    = terceroM ? getWinner(terceroM)  : null;
       html += `
         <div class="podio-category">
           <div class="podio-cat-title">${CAT_LABELS[cat]||cat}</div>
@@ -572,6 +762,7 @@
       allMatches[cat] = snap.val() || {};
       renderCategory(cat, allMatches[cat]);
       renderPodio();
+      renderGoleadores();
       const now = new Date().toLocaleTimeString('es-PY',{hour:'2-digit',minute:'2-digit'});
       document.getElementById('last-update').textContent = `Última actualización: ${now}`;
     });
