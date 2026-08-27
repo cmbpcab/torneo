@@ -96,6 +96,8 @@
   .btn-end:hover{background:rgba(255,214,0,0.2);}
   .btn-green{background:rgba(0,200,83,0.12);color:var(--green);border:1px solid rgba(0,200,83,0.3);}
   .btn-green:hover{background:rgba(0,200,83,0.22);}
+  .btn-yellow{background:rgba(255,214,0,0.12);color:var(--yellow);border:1px solid rgba(255,214,0,0.3);}
+  .btn-yellow:hover{background:rgba(255,214,0,0.22);}
   .btn:disabled{opacity:0.28;cursor:not-allowed;pointer-events:none;}
   .btn-blue{background:rgba(60,120,255,0.15);color:#7aadff;border:1px solid rgba(60,120,255,0.35);}
   .btn-blue:hover{background:rgba(60,120,255,0.25);}
@@ -159,6 +161,17 @@
   .add-goal-row input[type=checkbox]{width:14px;height:14px;accent-color:var(--red);cursor:pointer;flex-shrink:0;}
   .no-goals{font-family:'Barlow Condensed',sans-serif;font-size:0.75rem;color:var(--muted);letter-spacing:1px;font-style:italic;padding:4px 0;}
 
+  /* ── CARDS SECTION ── */
+  .cards-section{display:none;flex-direction:column;gap:8px;padding-top:10px;border-top:1px solid rgba(255,214,0,0.2);}
+  .cards-section.open{display:flex;}
+  .cards-header{font-family:'Barlow Condensed',sans-serif;font-size:0.72rem;letter-spacing:2px;text-transform:uppercase;color:var(--yellow);display:flex;align-items:center;gap:6px;}
+  .card-items{display:flex;flex-direction:column;gap:4px;}
+  .card-item{display:flex;align-items:center;gap:8px;padding:5px 10px;background:rgba(255,214,0,0.05);border:1px solid rgba(255,214,0,0.15);border-radius:6px;font-family:'Barlow Condensed',sans-serif;font-size:0.82rem;}
+  .card-item .ci-player{flex:1;font-weight:600;}
+  .card-item .ci-team{color:var(--muted);font-size:0.65rem;letter-spacing:1px;text-transform:uppercase;}
+  .add-card-row{display:grid;grid-template-columns:1fr 1.6fr auto auto;gap:6px;align-items:center;}
+  .add-card-row select{font-size:0.82rem;padding:6px 8px;}
+
   /* ── EQUIPOS PANEL ── */
   .equipo-form{background:var(--surface);border:1px solid rgba(0,200,83,0.2);border-radius:12px;padding:1.25rem;display:flex;flex-direction:column;gap:14px;}
   .equipo-form-row{display:grid;grid-template-columns:2fr 1fr;gap:10px;align-items:end;}
@@ -188,6 +201,7 @@
     .form-grid{grid-template-columns:1fr;}.vs-label{display:none;}
     .form-row{grid-template-columns:1fr 1fr;}
     .add-goal-row{grid-template-columns:1fr 1fr;}
+    .add-card-row{grid-template-columns:1fr 1fr;}
     .equipo-form-row{grid-template-columns:1fr;}
   }
 </style>
@@ -415,7 +429,7 @@
   function buildGoalsText(gd, slot) {
     return toArr(gd)
       .filter(g => g.teamSlot == slot)
-      .map(g => g.ownGoal ? `${g.player} (en contra)` : g.player)
+      .map(g => g.ownGoal ? `⚽ ${g.player} (en contra)` : `⚽ ${g.player}`)
       .join('\n');
   }
 
@@ -494,6 +508,69 @@
       goals2: buildGoalsText(gd, 2)
     });
     toast('✓ Gol removido');
+  };
+
+  // ── CARDS (tarjetas) ──
+  window.toggleCards = function(id) {
+    document.getElementById(`cards-${id}`).classList.toggle('open');
+  };
+
+  window.updateCardPlayerOpts = function(cat, id) {
+    const slot     = document.getElementById(`cteam-${id}`).value;
+    const m        = (window._matches[cat] || {})[id] || {};
+    const teamName = slot == 1 ? m.team1 : m.team2;
+    const players  = getTeamPlayers(cat, teamName);
+    const sel      = document.getElementById(`cplayer-${id}`);
+    sel.innerHTML  = players.length
+      ? `<option value="">— Seleccionar jugador —</option>` + players.map(p => `<option value="${p}">${p}</option>`).join('')
+      : `<option value="">Sin jugadores registrados</option>`;
+  };
+
+  // Agrupa por jugador+tipo y repite el ícono según la cantidad de tarjetas
+  // (ej.: 2 amarillas al mismo jugador → "🟨🟨 Nombre", no "🟨 Nombre (2)")
+  function buildCardsText(cd, slot) {
+    const items  = toArr(cd).filter(c => c.teamSlot == slot);
+    const counts = {}, order = [];
+    items.forEach(c => {
+      const key = `${c.cardType}||${c.player}`;
+      if (!counts[key]) { counts[key] = 0; order.push(key); }
+      counts[key]++;
+    });
+    return order.map(key => {
+      const [type, player] = key.split('||');
+      const icon = type === 'red' ? '🟥' : '🟨';
+      return `${icon.repeat(counts[key])} ${player}`;
+    }).join('\n');
+  }
+
+  window.addCard = async function(cat, id) {
+    const teamSlot = parseInt(document.getElementById(`cteam-${id}`).value);
+    const player   = document.getElementById(`cplayer-${id}`).value.trim();
+    const cardType = document.getElementById(`ctype-${id}`).value;
+    if (!player) { toast('⚠ Seleccioná un jugador'); return; }
+
+    const m  = (window._matches[cat] || {})[id] || {};
+    const cd = [...toArr(m.cardsData), { player, teamSlot, cardType }];
+
+    await update(ref(db, `matches/${cat}/${id}`), {
+      cardsData: cd,
+      cards1: buildCardsText(cd, 1),
+      cards2: buildCardsText(cd, 2)
+    });
+    document.getElementById(`cplayer-${id}`).selectedIndex = 0;
+    toast(cardType === 'red' ? '🟥 Tarjeta roja registrada' : '🟨 Tarjeta amarilla registrada');
+  };
+
+  window.removeCard = async function(cat, id, idx) {
+    const m  = (window._matches[cat] || {})[id] || {};
+    const cd = toArr(m.cardsData).filter((_, i) => i !== idx);
+
+    await update(ref(db, `matches/${cat}/${id}`), {
+      cardsData: cd.length ? cd : null,
+      cards1: buildCardsText(cd, 1),
+      cards2: buildCardsText(cd, 2)
+    });
+    toast('✓ Tarjeta removida');
   };
 
   // savePenalty removed — penalty data is now saved atomically when clicking Finalizar
@@ -657,7 +734,8 @@
       if (!confirm('¿Resetear este partido? Se borrarán los goles y el marcador.')) return;
       await update(ref(db, `matches/${cat}/${id}`), {
         status, score1:0, score2:0, penalty:false, pen1:0, pen2:0,
-        goalsData:null, goals1:'', goals2:''
+        goalsData:null, goals1:'', goals2:'',
+        cardsData:null, cards1:'', cards2:''
       });
       const m    = (window._matches[cat]||{})[id];
       const allM = window._matches[cat] || {};
@@ -861,6 +939,10 @@
               ? `<div class="team-players" id="team-tags-${t.id}">${pl.map(p => `<span class="player-tag">${p}</span>`).join('')}</div>`
               : `<div style="font-family:'Barlow Condensed',sans-serif;font-size:0.72rem;color:var(--muted);font-style:italic;" id="team-tags-${t.id}">Sin jugadores registrados</div>`}
             <div class="team-edit-panel" id="team-edit-${t.id}" style="display:none">
+              <div class="field" style="margin-bottom:10px">
+                <label>Nombre del equipo</label>
+                <input type="text" id="team-edit-name-${t.id}" value="${t.name.replace(/"/g,'&quot;')}" style="text-transform:uppercase">
+              </div>
               <div id="team-edit-rows-${t.id}">${editRows}</div>
               <button class="btn btn-sm btn-ghost" style="margin-top:4px" onclick="addEditPlayer('${t.id}')">+ Jugador</button>
               <div class="team-edit-actions">
@@ -892,8 +974,9 @@
       const nextM     = m.nextMatch ? matches[m.nextMatch] : null;
       const nextLabel = nextM ? `→ [${nextM.code||'?'}]` : '';
       const goalsArr  = toArr(m.goalsData);
+      const cardsArr  = toArr(m.cardsData);
 
-      // Build player options for the goal form (team-1 players by default)
+      // Build player options for the goal/card forms (team-1 players by default)
       const t1players = getTeamPlayers(cat, m.team1);
       const t1opts = t1players.length
         ? `<option value="">— Seleccionar jugador —</option>` + t1players.map(p => `<option value="${p}">${p}</option>`).join('')
@@ -909,6 +992,16 @@
               <button class="gi-del" onclick="removeGoal('${cat}','${id}',${i})">✕</button>
             </div>`).join('')
         : '<div class="no-goals">No hay goles registrados.</div>';
+
+      const cardsHTML = cardsArr.length
+        ? cardsArr.map((c, i) => `
+            <div class="card-item">
+              <span>${c.cardType === 'red' ? '🟥' : '🟨'}</span>
+              <span class="ci-player">${c.player}</span>
+              <span class="ci-team">${c.teamSlot == 1 ? (m.team1||'Eq.1') : (m.team2||'Eq.2')}</span>
+              <button class="gi-del" onclick="removeCard('${cat}','${id}',${i})">✕</button>
+            </div>`).join('')
+        : '<div class="no-goals">No hay tarjetas registradas.</div>';
 
       return `
       <div class="match-row ${m.status==='live'?'live-row':m.status==='finished'?'finished-row':'pending-row'} ${m.phase==='final'?'row-final':m.phase==='tercero'?'row-tercero':''}">
@@ -955,6 +1048,8 @@
           <div style="margin-left:auto;display:flex;gap:6px;flex-wrap:wrap">
             <button class="btn btn-sm btn-green"  onclick="toggleGoals('${id}')"
               ${m.status!=='live'?'disabled':''}>⚽ Goles (${goalsArr.length})</button>
+            <button class="btn btn-sm btn-yellow" onclick="toggleCards('${id}')"
+              ${m.status!=='live'?'disabled':''}>🟨 Tarjetas (${cardsArr.length})</button>
             <button class="btn btn-sm btn-live"   onclick="setStatus('${cat}','${id}','live')"
               ${m.status!=='pending'?'disabled':''}>En vivo</button>
             <button class="btn btn-sm btn-end"    onclick="setStatus('${cat}','${id}','finished')"
@@ -979,6 +1074,24 @@
             <select id="gplayer-${id}">${t1opts}</select>
             <label class="og-label"><input type="checkbox" id="gog-${id}"> Contra</label>
             <button class="btn btn-sm btn-green" onclick="addGoal('${cat}','${id}')">+ Gol</button>
+          </div>
+        </div>
+
+        <!-- CARDS SECTION -->
+        <div class="cards-section" id="cards-${id}">
+          <div class="cards-header">🟨🟥 Registro de Tarjetas</div>
+          <div class="card-items">${cardsHTML}</div>
+          <div class="add-card-row">
+            <select id="cteam-${id}" onchange="updateCardPlayerOpts('${cat}','${id}')">
+              <option value="1">${m.team1||'Equipo 1'}</option>
+              <option value="2">${m.team2||'Equipo 2'}</option>
+            </select>
+            <select id="cplayer-${id}">${t1opts}</select>
+            <select id="ctype-${id}">
+              <option value="yellow">🟨 Amarilla</option>
+              <option value="red">🟥 Roja</option>
+            </select>
+            <button class="btn btn-sm btn-yellow" onclick="addCard('${cat}','${id}')">+ Tarjeta</button>
           </div>
         </div>
 
@@ -1031,8 +1144,32 @@
     const container = document.getElementById(`team-edit-rows-${id}`);
     const players = [...container.querySelectorAll('.player-edit-inp')]
       .map(inp => inp.value.trim()).filter(Boolean);
+
+    const nameInput = document.getElementById(`team-edit-name-${id}`);
+    const newName   = nameInput.value.trim().toUpperCase();
+    if (!newName) { toast('⚠ El nombre del equipo no puede estar vacío'); return; }
+
+    const oldTeam = (window._teams[cat] || {})[id];
+    const oldName = oldTeam?.name || '';
+
+    const dup = Object.entries(window._teams[cat] || {})
+      .some(([tid, t]) => tid !== id && t.name === newName);
+    if (dup) { toast(`⚠ Ya existe un equipo "${newName}" en esta categoría`); return; }
+
     try {
-      await update(ref(db, `matches/__teams__/${cat}/${id}`), { players });
+      const updates = {};
+      updates[`matches/__teams__/${cat}/${id}/name`]    = newName;
+      updates[`matches/__teams__/${cat}/${id}/players`] = players;
+
+      // Si cambió el nombre, propagarlo a los partidos ya creados con este equipo
+      if (newName !== oldName) {
+        Object.entries(window._matches[cat] || {}).forEach(([mid, m]) => {
+          if (m.team1 === oldName) updates[`matches/${cat}/${mid}/team1`] = newName;
+          if (m.team2 === oldName) updates[`matches/${cat}/${mid}/team2`] = newName;
+        });
+      }
+
+      await update(ref(db), updates);
       toast('✓ Equipo actualizado');
       document.getElementById(`team-edit-${id}`).style.display = 'none';
     } catch(e) {
@@ -1073,6 +1210,8 @@ window.exportTxt = function() {
       lines.push(`  ${m.team1||'?'} ${m.score1??0} × ${m.score2??0} ${m.team2||'?'}${pen}`);
       if (m.goals1) lines.push(`  Goles ${m.team1}: ${m.goals1.replace(/\n/g,', ')}`);
       if (m.goals2) lines.push(`  Goles ${m.team2}: ${m.goals2.replace(/\n/g,', ')}`);
+      if (m.cards1) lines.push(`  Tarjetas ${m.team1}: ${m.cards1.replace(/\n/g,', ')}`);
+      if (m.cards2) lines.push(`  Tarjetas ${m.team2}: ${m.cards2.replace(/\n/g,', ')}`);
       lines.push('');
     });
   });

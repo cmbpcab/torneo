@@ -257,6 +257,11 @@
     font-size: 0.6rem; color: var(--muted); letter-spacing: 0.3px;
     line-height: 1.3; white-space: pre-line;
   }
+  .bk-team-cards {
+    font-family:'Barlow Condensed', sans-serif;
+    font-size: 0.6rem; color: var(--yellow); letter-spacing: 0.3px;
+    line-height: 1.3; white-space: pre-line; opacity:0.85;
+  }
 
   .bk-score-block {
     display: flex; flex-direction: column; align-items: center; gap: 1px;
@@ -515,6 +520,8 @@
   #tv-popup.popup-goal     { border-color:var(--green); box-shadow:0 0 70px rgba(0,200,83,0.28),0 0 140px rgba(0,200,83,0.08); }
   #tv-popup.popup-live     { border-color:var(--green); box-shadow:0 0 70px rgba(0,200,83,0.28),0 0 140px rgba(0,200,83,0.08); }
   #tv-popup.popup-finished { border-color:#40c4ff;      box-shadow:0 0 70px rgba(64,196,255,0.25),0 0 140px rgba(64,196,255,0.07); }
+  #tv-popup.popup-card-yellow { border-color:var(--yellow); box-shadow:0 0 70px rgba(255,214,0,0.28),0 0 140px rgba(255,214,0,0.08); }
+  #tv-popup.popup-card-red    { border-color:var(--red);    box-shadow:0 0 70px rgba(255,23,68,0.28),0 0 140px rgba(255,23,68,0.08); }
 
   @keyframes popup-bounce {
     from { transform: scale(0.82) translateY(24px); opacity: 0; }
@@ -534,6 +541,8 @@
   #tv-popup.popup-goal     .popup-headline { color:var(--green); text-shadow:0 0 30px rgba(0,200,83,0.5); }
   #tv-popup.popup-live     .popup-headline { color:var(--green); }
   #tv-popup.popup-finished .popup-headline { color:#40c4ff; }
+  #tv-popup.popup-card-yellow .popup-headline { color:var(--yellow); }
+  #tv-popup.popup-card-red    .popup-headline { color:var(--red); }
 
   .popup-scorer {
     font-family:'Barlow Condensed',sans-serif;
@@ -587,6 +596,8 @@
   #tv-popup.popup-goal     .popup-progress-fill { background:var(--green); }
   #tv-popup.popup-live     .popup-progress-fill { background:var(--green); }
   #tv-popup.popup-finished .popup-progress-fill { background:#40c4ff; }
+  #tv-popup.popup-card-yellow .popup-progress-fill { background:var(--yellow); }
+  #tv-popup.popup-card-red    .popup-progress-fill { background:var(--red); }
 
   /* ── GOAL CELEBRATION ANIMATION ── */
   @keyframes goal-ball-burst {
@@ -937,6 +948,11 @@ function matchCard(m, isWideCol) {
   const goalsHtml1 = goals1c ? `<div class="bk-team-goals">${goals1c}</div>` : '';
   const goalsHtml2 = goals2c ? `<div class="bk-team-goals">${goals2c}</div>` : '';
 
+  const cards1c = m.cards1||'';
+  const cards2c = m.cards2||'';
+  const cardsHtml1 = cards1c ? `<div class="bk-team-cards">${cards1c}</div>` : '';
+  const cardsHtml2 = cards2c ? `<div class="bk-team-cards">${cards2c}</div>` : '';
+
   return `
     <div class="bk-card ${m.status||'pending'}">
       <div class="bk-phase-bar"></div>
@@ -944,6 +960,7 @@ function matchCard(m, isWideCol) {
         <div class="bk-team">
           <div class="bk-team-name ${w1?'winner':''} ${isTbd1?'tbd':''}">${w1?'👑 ':''}${t1}</div>
           ${goalsHtml1}
+          ${cardsHtml1}
         </div>
         <div class="bk-score-block">
           ${statusHtml}
@@ -957,6 +974,7 @@ function matchCard(m, isWideCol) {
         <div class="bk-team right">
           <div class="bk-team-name ${w2?'winner':''} ${isTbd2?'tbd':''}">${w2?'👑 ':''}${t2}</div>
           ${goalsHtml2}
+          ${cardsHtml2}
         </div>
       </div>
     </div>`;
@@ -1157,7 +1175,9 @@ function showNextPopup() {
   const overlay = document.getElementById('tv-popup-overlay');
   const popup   = document.getElementById('tv-popup');
 
-  popup.className = `popup-${data.type}`;
+  popup.className = data.type === 'card'
+    ? `popup-card-${data.cardType === 'red' ? 'red' : 'yellow'}`
+    : `popup-${data.type}`;
 
   let inner = '';
 
@@ -1184,6 +1204,15 @@ function showNextPopup() {
       <div class="popup-match-teams">${data.match.team1}</div>
       <div class="popup-sub" style="font-size:1rem;letter-spacing:4px">VS</div>
       <div class="popup-match-teams">${data.match.team2}</div>`;
+  } else if (data.type === 'card') {
+    const isRed = data.cardType === 'red';
+    inner = `
+      <div class="popup-icon">${isRed ? '🟥' : '🟨'}</div>
+      <div class="popup-eyebrow">${CAT_LABELS[data.cat]} · ${data.match.code || ''}</div>
+      <div class="popup-headline">${isRed ? 'TARJETA ROJA' : 'TARJETA AMARILLA'}</div>
+      <div class="popup-scorer">${data.player}</div>
+      <div class="popup-team-tag">${data.team}</div>
+      <div class="popup-vs">${data.match.team1} &nbsp;×&nbsp; ${data.match.team2}</div>`;
   } else if (data.type === 'finished') {
     const w   = getWinner(data.match);
     const pen = data.match.penalty
@@ -1346,10 +1375,11 @@ function detectChanges(cat, newData) {
   Object.entries(newData).forEach(([id, m]) => {
     const prev         = prevMatchState[cat][id];
     const newGoalCount = toArr(m.goalsData).length;
+    const newCardCount = toArr(m.cardsData).length;
 
     if (!prev) {
       // First time we see this match — record state, no popup
-      prevMatchState[cat][id] = { goalsCount: newGoalCount, status: m.status };
+      prevMatchState[cat][id] = { goalsCount: newGoalCount, cardsCount: newCardCount, status: m.status };
       return;
     }
 
@@ -1367,6 +1397,19 @@ function detectChanges(cat, newData) {
         }
       }
 
+      // ── New card(s) ──
+      if (newCardCount > prev.cardsCount) {
+        const cards = toArr(m.cardsData);
+        for (let i = prev.cardsCount; i < newCardCount; i++) {
+          const c = cards[i];
+          if (c) {
+            const teamName = c.teamSlot == 1 ? (m.team1||'Equipo 1') : (m.team2||'Equipo 2');
+            queuePopup({ type:'card', cat, match:m,
+              player: c.player || '?', team: teamName, cardType: c.cardType || 'yellow' });
+          }
+        }
+      }
+
       // ── Status change ──
       if (m.status !== prev.status) {
         if (m.status === 'live')     queuePopup({ type:'live',     cat, match:m });
@@ -1378,7 +1421,7 @@ function detectChanges(cat, newData) {
     }
 
     // Update recorded state
-    prevMatchState[cat][id] = { goalsCount: newGoalCount, status: m.status };
+    prevMatchState[cat][id] = { goalsCount: newGoalCount, cardsCount: newCardCount, status: m.status };
   });
 
   if (isFirst) initialized[cat] = true;

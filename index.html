@@ -226,6 +226,17 @@
   }
   .team.winner .goals-list { color:rgba(255,214,0,0.7); }
 
+  .cards-list {
+    font-size:0.68rem;
+    color:var(--yellow);
+    font-family:'Barlow Condensed', sans-serif;
+    letter-spacing:0.5px;
+    line-height:1.5;
+    margin-top:2px;
+    white-space:pre-line;
+    opacity:0.85;
+  }
+
   .score-block {
     display:flex; flex-direction:column; align-items:center; gap:3px;
   }
@@ -327,6 +338,7 @@
     .score      { font-size:2rem; min-width:1.2ch; }
     .score-sep  { font-size:1.3rem; }
     .goals-list { font-size:0.62rem; }
+    .cards-list { font-size:0.62rem; }
     .penalty-note { font-size:1rem; padding:2px 7px; }
     .match-time { font-size:0.56rem; }
     .match-status { font-size:0.56rem; }
@@ -556,6 +568,12 @@
   }
   .notif.notif-live   { border-left-color:var(--green); }
   .notif.notif-finish { border-left-color:#40c4ff; }
+  .notif.notif-card-yellow { border-left-color:var(--yellow); }
+  .notif.notif-card-red    { border-left-color:var(--red); }
+  .notif-card-yellow .notif-title { color:var(--yellow); }
+  .notif-card-red    .notif-title { color:var(--red); }
+  .notif-card-yellow .notif-bar   { background:var(--yellow); }
+  .notif-card-red    .notif-bar   { background:var(--red); }
   .notif.notif-out {
     animation:notif-out 0.3s ease both;
   }
@@ -754,6 +772,7 @@
               ${crown1}
               <div class="team-name">${m.team1||'Equipo A'}</div>
               ${m.goals1 ? `<div class="goals-list">${compactGoals(m.goals1)}</div>` : ''}
+              ${m.cards1 ? `<div class="cards-list">${m.cards1}</div>` : ''}
               ${label1}
             </div>
             <div class="score-block">
@@ -770,6 +789,7 @@
               ${crown2}
               <div class="team-name">${m.team2||'Equipo B'}</div>
               ${m.goals2 ? `<div class="goals-list">${compactGoals(m.goals2)}</div>` : ''}
+              ${m.cards2 ? `<div class="cards-list">${m.cards2}</div>` : ''}
               ${label2}
             </div>
           </div>`;
@@ -903,6 +923,11 @@
       title = 'EN VIVO';
       line1 = `${data.match.team1} vs ${data.match.team2}`;
       line2 = CAT_LABELS[data.cat] + (data.match.time ? ' · ' + data.match.time : '');
+    } else if (data.type === 'card') {
+      icon  = data.cardType === 'red' ? '🟥' : '🟨';
+      title = data.cardType === 'red' ? 'TARJETA ROJA' : 'TARJETA AMARILLA';
+      line1 = data.player;
+      line2 = `${data.team} · ${data.match.team1} × ${data.match.team2}`;
     } else {
       icon  = '🏁';
       title = 'FINALIZADO';
@@ -912,7 +937,11 @@
     }
 
     const el = document.createElement('div');
-    el.className = `notif notif-${data.type === 'goal' ? 'goal' : data.type === 'live' ? 'live' : 'finish'}`;
+    el.className = `notif notif-${
+      data.type === 'goal' ? 'goal' :
+      data.type === 'live' ? 'live' :
+      data.type === 'card' ? (data.cardType === 'red' ? 'card-red' : 'card-yellow') :
+      'finish'}`;
     el.innerHTML = `
       <div class="notif-icon">${icon}</div>
       <div class="notif-body">
@@ -945,6 +974,7 @@
     Object.entries(newData).forEach(([id, m]) => {
       const prev       = prevState[cat][id];
       const goalsNow   = toArr(m.goalsData).length;
+      const cardsNow   = toArr(m.cardsData).length;
 
       if (wasInited && prev) {
         // ── Goal ──
@@ -958,6 +988,17 @@
             });
           });
         }
+        // ── Tarjeta ──
+        if (cardsNow > prev.cardsCount) {
+          toArr(m.cardsData).slice(prev.cardsCount).forEach(c => {
+            showNotif({
+              type: 'card', cat, match: m,
+              player: c.player,
+              team: c.teamSlot == 1 ? (m.team1||'?') : (m.team2||'?'),
+              cardType: c.cardType || 'yellow'
+            });
+          });
+        }
         // ── En vivo ──
         if (prev.status !== 'live'     && m.status === 'live')
           showNotif({ type: 'live',     cat, match: m });
@@ -966,7 +1007,7 @@
           showNotif({ type: 'finished', cat, match: m });
       }
 
-      prevState[cat][id] = { status: m.status, goalsCount: goalsNow };
+      prevState[cat][id] = { status: m.status, goalsCount: goalsNow, cardsCount: cardsNow };
     });
 
     notifInited[cat] = true;
