@@ -1322,25 +1322,47 @@ window.exportTxt = function() {
     let html = `<div style="font-family:'Barlow Condensed',sans-serif;font-size:0.75rem;color:var(--muted);letter-spacing:1px;margin-bottom:8px">
       ${pendingImport.length} equipo(s) encontrado(s) en el archivo:</div>`;
 
-    let newCount = 0;
+    // Compara nomes de jogador ignorando maiúsculas/minúsculas e espaços nas pontas,
+    // pra não duplicar quem já está cadastrado no time.
+    const norm = s => (s || '').toString().trim().toLowerCase();
+
+    let newTeamCount = 0, appendPlayerCount = 0;
     pendingImport.forEach(t => {
-      const catLbl  = CAT_LABELS[t.cat] || t.cat;
-      const exists  = Object.values(window._teams[t.cat] || {}).some(x => x.name === t.name);
-      if (!exists) newCount++;
+      const catLbl   = CAT_LABELS[t.cat] || t.cat;
+      const existing = Object.values(window._teams[t.cat] || {}).find(x => x.name === t.name);
       const preview3 = t.players.slice(0,3).join(', ') + (t.players.length > 3 ? ` +${t.players.length - 3} más` : '');
+
+      let statusHtml;
+      if (!existing) {
+        newTeamCount++;
+        statusHtml = '';
+      } else {
+        const existingNames = new Set((existing.players || []).map(norm));
+        const toAppend = t.players.filter(p => !existingNames.has(norm(p)));
+        appendPlayerCount += toAppend.length;
+        statusHtml = toAppend.length
+          ? `<span style="margin-left:auto;color:var(--yellow);font-size:0.66rem;letter-spacing:1px">YA EXISTE · +${toAppend.length} JUGADOR${toAppend.length !== 1 ? 'ES' : ''} A AGREGAR</span>`
+          : `<span style="margin-left:auto;color:var(--muted);font-size:0.66rem;letter-spacing:1px">YA EXISTE · SIN JUGADORES NUEVOS</span>`;
+      }
+
       html += `
-        <div style="display:flex;align-items:center;gap:8px;padding:7px 10px;background:var(--surface2);border:1px solid ${exists ? 'rgba(255,23,68,0.3)' : 'var(--border)'};border-radius:8px;margin-bottom:4px;font-family:'Barlow Condensed',sans-serif;font-size:0.82rem;flex-wrap:wrap;gap:6px">
-          <span style="font-weight:700;text-transform:uppercase;color:${exists ? 'var(--red)' : 'var(--text)'}">${t.name}</span>
+        <div style="display:flex;align-items:center;gap:8px;padding:7px 10px;background:var(--surface2);border:1px solid ${existing ? 'rgba(255,193,7,0.3)' : 'var(--border)'};border-radius:8px;margin-bottom:4px;font-family:'Barlow Condensed',sans-serif;font-size:0.82rem;flex-wrap:wrap;gap:6px">
+          <span style="font-weight:700;text-transform:uppercase;color:var(--text)">${t.name}</span>
           <span class="team-card-cat">${catLbl}</span>
           <span style="color:var(--muted);font-size:0.72rem">${t.players.length} jugador(es)${preview3 ? ': ' + preview3 : ''}</span>
-          ${exists ? `<span style="margin-left:auto;color:var(--red);font-size:0.66rem;letter-spacing:1px">YA EXISTE · SE OMITIRÁ</span>` : ''}
+          ${statusHtml}
         </div>`;
     });
 
+    const nothingToDo = !newTeamCount && !appendPlayerCount;
+    const parts = [];
+    if (newTeamCount)      parts.push(`${newTeamCount} equipo${newTeamCount !== 1 ? 's' : ''} nuevo${newTeamCount !== 1 ? 's' : ''}`);
+    if (appendPlayerCount) parts.push(`${appendPlayerCount} jugador${appendPlayerCount !== 1 ? 'es' : ''} agregado${appendPlayerCount !== 1 ? 's' : ''}`);
+
     html += `<div style="display:flex;gap:8px;justify-content:flex-end;margin-top:10px">
       <button class="btn btn-ghost btn-sm" onclick="cancelImport()">Cancelar</button>
-      <button class="btn btn-primary" onclick="confirmImport()" ${!newCount ? 'disabled' : ''}>
-        ✓ Confirmar (${newCount} nuevo${newCount !== 1 ? 's' : ''})
+      <button class="btn btn-primary" onclick="confirmImport()" ${nothingToDo ? 'disabled' : ''}>
+        ✓ Confirmar (${parts.join(' · ') || 'nada por hacer'})
       </button>
     </div>`;
     preview.innerHTML = html;
@@ -1348,13 +1370,31 @@ window.exportTxt = function() {
 
   window.confirmImport = async function() {
     if (!pendingImport.length) return;
-    let success = 0, skipped = 0;
+    const norm = s => (s || '').toString().trim().toLowerCase();
+    let created = 0, appended = 0, unchanged = 0;
     for (const t of pendingImport) {
-      const exists = Object.values(window._teams[t.cat] || {}).some(x => x.name === t.name);
-      if (exists) { skipped++; continue; }
+      const entry = Object.entries(window._teams[t.cat] || {}).find(([, x]) => x.name === t.name);
       try {
-        await push(ref(db, `matches/__teams__/${t.cat}`), { name: t.name, players: t.players, category: t.cat });
-        success++;
+        if (!entry) {
+          // Equipo nuevo: crea el registro completo.
+          await push(ref(db, `matches/__teams__/${t.cat}`), { name: t.name, players: t.players, category: t.cat });
+          created++;
+          continue;
+        }
+        // Equipo ya existente: NUNCA se sobrescribe nombre/categoría, solo se
+        // agregan (append) los jugadores del archivo que todavía no están en la lista.
+        const [id, existing] = entry;
+        const existingPlayers = existing.players || [];
+        const existingNames   = new Set(existingPlayers.map(norm));
+        const toAppend = t.players.filter(p => !existingNames.has(norm(p)));
+        if (!toAppend.length) { unchanged++; continue; }
+        let merged = [...existingPlayers, ...toAppend];
+        if (merged.length > 20) {
+          toast(`⚠ ${t.name}: máximo 20 jugadores, se omitieron ${merged.length - 20}`);
+          merged = merged.slice(0, 20);
+        }
+        await update(ref(db, `matches/__teams__/${t.cat}/${id}`), { players: merged });
+        appended++;
       } catch(e) {
         toast(`✕ Error guardando ${t.name}: ${e.message}`);
       }
@@ -1365,7 +1405,11 @@ window.exportTxt = function() {
     document.getElementById('import-filename').textContent = 'Seleccionar archivo .csv o .xlsx';
     const lbl = document.getElementById('import-label');
     if (lbl) { lbl.style.borderColor = ''; lbl.style.color = ''; }
-    toast(`✓ ${success} equipo(s) importado(s)${skipped ? ` · ${skipped} omitido(s)` : ''}`);
+    const parts = [];
+    if (created)   parts.push(`${created} equipo(s) creado(s)`);
+    if (appended)  parts.push(`${appended} equipo(s) con jugadores agregados`);
+    if (unchanged) parts.push(`${unchanged} sin cambios`);
+    toast(`✓ ${parts.join(' · ') || 'Nada para importar'}`);
   };
 
   window.cancelImport = function() {
