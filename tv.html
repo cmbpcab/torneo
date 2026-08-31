@@ -983,10 +983,29 @@ function matchCard(m, isWideCol) {
     </div>`;
 }
 
-/* ── Bracket builder ── */
+/* Oficiales is a true 8-team knockout (cuartos→semi→final/tercero).
+   Suboficiales/Femenino are a 3-team round-robin scheduled across the
+   same 3 slots (cuartos/semi/final fields, reused for storage/plumbing
+   only — genCode, srcMatch propagation, etc. — so the phase values stay
+   the same); on screen they read as "Juego 1/2/3" and never show a
+   3.º-lugar block or trigger the championship splash, since the winner
+   there is decided by standings, not by that single match. */
+const BRACKET_LABELS = {
+  oficiales:    { cuartos:'Cuartos de Final', semi:'Semifinal', final:'Final',   both:'Final &amp; 3.º Lugar', finalIcon:'🏆 Final',   pad:true  },
+  suboficiales: { cuartos:'Juego 1',          semi:'Juego 2',   final:'Juego 3', both:'Juego 3',               finalIcon:'⚽ Juego 3', pad:false },
+  femenino:     { cuartos:'Juego 1',          semi:'Juego 2',   final:'Juego 3', both:'Juego 3',               finalIcon:'⚽ Juego 3', pad:false },
+};
+const TERCERO_ICON = '🥉 3.º Lugar';
+
+/* ── Bracket builder ──
+   Phases with zero registered matches are omitted entirely (column +
+   connector), so the remaining phases stretch to fill the row (each
+   .bracket-col already has flex:1, so removing a column rebalances
+   the rest automatically). */
 function buildBracket(cat) {
   const el = document.getElementById(`bracket-${cat}`);
   if (!el) return;
+  const L = BRACKET_LABELS[cat] || BRACKET_LABELS.oficiales;
 
   const matches = allMatches[cat] || {};
   const list    = Object.values(matches).sort((a,b) => (a.order||0)-(b.order||0));
@@ -996,61 +1015,88 @@ function buildBracket(cat) {
   const finalM   = list.find(m  => m.phase === 'final');
   const terceroM = list.find(m  => m.phase === 'tercero');
 
-  // Ensure we always show at least 2 slots for cuartos / 2 for semis
-  while (cuartos.length  < 4) cuartos.push(null);
-  while (semis.length    < 2) semis.push(null);
+  const hasCuartos = cuartos.length > 0;
+  const hasSemis   = semis.length   > 0;
+  const hasFinal   = !!finalM;
+  const hasTercero = !!terceroM;
+  const hasFinalCol = hasFinal || hasTercero;
 
-  /* ---------- Cuartos column ---------- */
-  let cuartosHtml = '';
-  cuartos.forEach(m => { cuartosHtml += matchCard(m); });
+  if (!hasCuartos && !hasSemis && !hasFinalCol) {
+    el.innerHTML = `<div class="no-data">⚽<p>Sin partidos registrados</p></div>`;
+    return;
+  }
 
-  /* ---------- Semi column ---------- */
-  let semisHtml = '';
-  semis.forEach(m => { semisHtml += matchCard(m); });
+  // Ensure at least 4 slots for cuartos / 2 for semis — only for the
+  // true knockout bracket (oficiales); the round-robin categories only
+  // ever have one match per slot, so padding would just add fake
+  // "A definir" cards for a phase that will never grow.
+  if (L.pad) {
+    if (hasCuartos) while (cuartos.length < 4) cuartos.push(null);
+    if (hasSemis)   while (semis.length   < 2) semis.push(null);
+  }
 
-  /* ---------- Final column ---------- */
-  const finalHtml   = matchCard(finalM || null);
-  const terceroHtml = matchCard(terceroM || null);
+  let html = '';
 
-  el.innerHTML = `
-    <!-- Cuartos -->
+  if (hasCuartos) {
+    const cuartosHtml = cuartos.map(m => matchCard(m)).join('');
+    html += `
     <div class="bracket-col">
-      <div class="bracket-col-header">Cuartos de Final</div>
+      <div class="bracket-col-header">${L.cuartos}</div>
       <div class="bracket-col-matches">${cuartosHtml}</div>
-    </div>
-
-    <!-- Connector cuartos→semi -->
-    <div class="bracket-connector">
-      <div class="connector-pair"></div>
-      <div class="connector-pair"></div>
-    </div>
-
-    <!-- Semi -->
-    <div class="bracket-col">
-      <div class="bracket-col-header col-semi">Semifinal</div>
-      <div class="bracket-col-matches">${semisHtml}</div>
-    </div>
-
-    <!-- Connector semi→final -->
-    <div class="bracket-connector">
-      <div class="connector-pair"></div>
-    </div>
-
-    <!-- Final + 3er lugar -->
-    <div class="bracket-col">
-      <div class="bracket-col-header col-final">Final &amp; 3.º Lugar</div>
-      <div class="bracket-col-final-matches">
-        <div class="bk-final-group">
-          <div class="bk-final-label">🏆 Final</div>
-          ${finalHtml}
-        </div>
-        <div class="bk-divider"></div>
-        <div class="bk-final-group">
-          <div class="bk-tercero-label">🥉 3.º Lugar</div>
-          ${terceroHtml}
-        </div>
-      </div>
     </div>`;
+  }
+
+  if (hasCuartos && hasSemis) {
+    html += `
+    <div class="bracket-connector">
+      <div class="connector-pair"></div>
+      <div class="connector-pair"></div>
+    </div>`;
+  }
+
+  if (hasSemis) {
+    const semisHtml = semis.map(m => matchCard(m)).join('');
+    html += `
+    <div class="bracket-col">
+      <div class="bracket-col-header col-semi">${L.semi}</div>
+      <div class="bracket-col-matches">${semisHtml}</div>
+    </div>`;
+  }
+
+  if (hasSemis && hasFinalCol) {
+    html += `
+    <div class="bracket-connector">
+      <div class="connector-pair"></div>
+    </div>`;
+  }
+
+  if (hasFinalCol) {
+    const finalHtml   = matchCard(finalM   || null);
+    const terceroHtml = matchCard(terceroM || null);
+    let groupsHtml = '';
+    if (hasFinal) {
+      groupsHtml += `
+        <div class="bk-final-group">
+          <div class="bk-final-label">${L.finalIcon}</div>
+          ${finalHtml}
+        </div>`;
+    }
+    if (hasFinal && hasTercero) groupsHtml += `<div class="bk-divider"></div>`;
+    if (hasTercero) {
+      groupsHtml += `
+        <div class="bk-final-group">
+          <div class="bk-tercero-label">${TERCERO_ICON}</div>
+          ${terceroHtml}
+        </div>`;
+    }
+    html += `
+    <div class="bracket-col">
+      <div class="bracket-col-header col-final">${hasFinal && hasTercero ? L.both : hasFinal ? L.final : '3.º Lugar'}</div>
+      <div class="bracket-col-final-matches">${groupsHtml}</div>
+    </div>`;
+  }
+
+  el.innerHTML = html;
 }
 
 /* ── Goleadores builder ── */
@@ -1418,7 +1464,10 @@ function detectChanges(cat, newData) {
         if (m.status === 'live')     queuePopup({ type:'live',     cat, match:m });
         if (m.status === 'finished') {
           queuePopup({ type:'finished', cat, match:m });
-          if (m.phase === 'final') showFinalSplash(cat, m);
+          // Only oficiales is a true knockout final — suboficiales/femenino
+          // reuse the 'final' phase slot for "Juego 3" of a round-robin,
+          // where the champion is decided by standings, not this match.
+          if (m.phase === 'final' && cat === 'oficiales') showFinalSplash(cat, m);
         }
       }
     }

@@ -707,6 +707,14 @@
     cuartos:'Cuartos de final', semi:'Semifinales',
     tercero:'Disputa por el 3.º lugar', final:'Final'
   };
+  // Suboficiales/Femenino are a 3-team round-robin stored in the same
+  // cuartos/semi/final slots as the oficiales knockout bracket (for
+  // code/plumbing reuse); on screen they read as "Juego 1/2/3" and never
+  // get a 3.º-lugar phase, since standings — not a single match — decide
+  // the winner there.
+  const PHASE_LABELS_ROUND_ROBIN = {
+    cuartos:'Juego 1', semi:'Juego 2', final:'Juego 3'
+  };
   const PHASE_ORDER = ['cuartos','semi','tercero','final'];
   const CATEGORIES  = ['oficiales','femenino','suboficiales'];
 
@@ -742,6 +750,8 @@
       el.innerHTML = `<div class="empty-state"><div class="empty-icon"><img src="https://drive.google.com/thumbnail?id=1MzSmTPE601AthjrlfPZF5Jb6Xqlvz0VJ" style="width:48px;opacity:0.5"></div>Sin partidos registrados aún.</div>`;
       return;
     }
+    const isRoundRobin = catId === 'suboficiales' || catId === 'femenino';
+    const labels = isRoundRobin ? PHASE_LABELS_ROUND_ROBIN : PHASE_LABELS;
     const byPhase = {};
     Object.entries(matches).forEach(([id,m]) => {
       if (!byPhase[m.phase]) byPhase[m.phase] = [];
@@ -751,10 +761,12 @@
     PHASE_ORDER.forEach(phase => {
       if (!byPhase[phase]) return;
       const list = byPhase[phase].sort((a,b)=>(a.order||0)-(b.order||0));
-      html += `<div class="phase-title">${PHASE_LABELS[phase]||phase}</div><div class="matches">`;
+      html += `<div class="phase-title">${labels[phase]||phase}</div><div class="matches">`;
       list.forEach(m => {
-        const isFinal   = phase === 'final'   && m.status === 'finished';
-        const isTercero = phase === 'tercero' && m.status === 'finished';
+        // Round-robin categories never crown a champion off a single
+        // match — the winner there is decided by standings.
+        const isFinal   = !isRoundRobin && phase === 'final'   && m.status === 'finished';
+        const isTercero = !isRoundRobin && phase === 'tercero' && m.status === 'finished';
         const s1  = m.status==='pending'?'–':(m.score1??0);
         const s2  = m.status==='pending'?'–':(m.score2??0);
         const w1  = m.status==='finished' && (m.penalty ? Number(m.pen1)>Number(m.pen2) : Number(m.score1)>Number(m.score2));
