@@ -27,6 +27,9 @@
     background:var(--bg);
     color:var(--text);
     font-family:'Barlow Condensed', sans-serif;
+    /* base scaled up for viewing on a 50" TV from a distance; scales
+       with the actual output resolution, capped so 4K doesn't blow up */
+    font-size: clamp(18px, 1.3vw, 28px);
   }
 
   /* ── BACKGROUND TEXTURE ── */
@@ -41,7 +44,7 @@
   /* ── HEADER ── */
   #tv-header {
     position: relative; z-index: 10;
-    height: 68px;
+    height: 4.25rem;
     display: flex; align-items: center; justify-content: space-between;
     padding: 0 2.5rem;
     border-bottom: 1px solid var(--border-y);
@@ -51,15 +54,15 @@
   }
   .hdr-logo {
     font-family:'Bebas Neue', sans-serif;
-    font-size: 2rem; letter-spacing: 4px; color: var(--yellow);
+    font-size: 2.2rem; letter-spacing: 4px; color: var(--yellow);
   }
   .hdr-logo span {
-    color: var(--muted); font-size: 1rem; letter-spacing: 3px;
+    color: var(--muted); font-size: 1.15rem; letter-spacing: 3px;
     margin-left: 14px; vertical-align: middle;
   }
   .hdr-slide-name {
     font-family:'Bebas Neue', sans-serif;
-    font-size: 1.9rem; letter-spacing: 5px;
+    font-size: 2.2rem; letter-spacing: 5px;
     color: var(--green);
     text-shadow: 0 0 30px rgba(0,200,83,0.35);
     transition: opacity 0.4s;
@@ -68,7 +71,7 @@
     display: flex; align-items: center; gap: 10px;
   }
   .hdr-dot {
-    width: 10px; height: 10px; border-radius: 50%;
+    width: 0.75rem; height: 0.75rem; border-radius: 50%;
     background: var(--muted2);
     transition: background 0.3s, transform 0.3s;
   }
@@ -122,7 +125,7 @@
   /* ── SLIDE TITLE ── */
   .slide-title {
     font-family:'Bebas Neue', sans-serif;
-    font-size: 1.35rem; letter-spacing: 6px; color: var(--yellow);
+    font-size: 1.7rem; letter-spacing: 6px; color: var(--yellow);
     text-transform: uppercase;
     display: flex; align-items: center; gap: 12px;
     flex-shrink: 0;
@@ -154,7 +157,7 @@
 
   .bracket-col-header {
     font-family:'Bebas Neue', sans-serif;
-    font-size: 0.88rem; letter-spacing: 4px;
+    font-size: 1.1rem; letter-spacing: 4px;
     color: var(--muted);
     text-align: center;
     padding-bottom: 0.65rem;
@@ -176,7 +179,7 @@
 
   /* Connector lines between columns */
   .bracket-connector {
-    width: 36px;
+    width: 2.25rem;
     position: relative;
     flex-shrink: 0;
     display: flex;
@@ -244,22 +247,22 @@
 
   .bk-team-name {
     font-family:'Barlow Condensed', sans-serif;
-    font-size: 0.88rem; font-weight: 700; letter-spacing: 0.5px;
+    font-size: 1.1rem; font-weight: 700; letter-spacing: 0.5px;
     line-height: 1.15; color: var(--text);
     white-space: nowrap; overflow: hidden;
     min-width: 0;
   }
   .bk-team-name.winner { color: var(--yellow); }
-  .bk-team-name.tbd    { color: var(--muted); font-style:italic; font-weight:400; font-size:0.78rem; }
+  .bk-team-name.tbd    { color: var(--muted); font-style:italic; font-weight:400; font-size:0.95rem; }
 
   .bk-team-goals {
     font-family:'Barlow Condensed', sans-serif;
-    font-size: 0.6rem; color: var(--muted); letter-spacing: 0.3px;
+    font-size: 0.78rem; color: var(--muted); letter-spacing: 0.3px;
     line-height: 1.3; white-space: pre-line;
   }
   .bk-team-cards {
     font-family:'Barlow Condensed', sans-serif;
-    font-size: 0.6rem; color: var(--yellow); letter-spacing: 0.3px;
+    font-size: 0.78rem; color: var(--yellow); letter-spacing: 0.3px;
     line-height: 1.3; white-space: pre-line; opacity:0.85;
   }
 
@@ -272,17 +275,17 @@
   }
   .bk-score {
     font-family:'Bebas Neue', sans-serif;
-    font-size: 1.9rem; min-width: 1ch; text-align: center;
+    font-size: 2.3rem; min-width: 1ch; text-align: center;
     line-height: 1;
   }
   .bk-score.winner { color: var(--yellow); }
   .bk-sep {
     font-family:'Bebas Neue', sans-serif;
-    font-size: 1.2rem; color: var(--muted);
+    font-size: 1.4rem; color: var(--muted);
   }
   .bk-pen {
     font-family:'Barlow Condensed', sans-serif;
-    font-size: 0.65rem; color: var(--yellow);
+    font-size: 0.82rem; color: var(--yellow);
     background: rgba(255,214,0,0.1);
     border: 1px solid rgba(255,214,0,0.22);
     border-radius: 4px; padding: 1px 6px;
@@ -291,7 +294,7 @@
   }
   .bk-status {
     font-family:'Barlow Condensed', sans-serif;
-    font-size: 0.58rem; letter-spacing: 2px; text-transform: uppercase;
+    font-size: 0.78rem; letter-spacing: 2px; text-transform: uppercase;
   }
   .bk-status.live    { color: var(--red);   animation: blink 1.2s step-end infinite; }
   .bk-status.pending { color: var(--muted); }
@@ -299,7 +302,7 @@
 
   .bk-time {
     font-family:'Barlow Condensed', sans-serif;
-    font-size: 0.6rem; color: var(--muted); letter-spacing: 1px;
+    font-size: 0.78rem; color: var(--muted); letter-spacing: 1px;
     margin-bottom: 1px;
   }
 
@@ -307,7 +310,7 @@
     padding: 0.8rem 0.7rem;
     text-align: center;
     font-family:'Barlow Condensed',sans-serif;
-    font-size:0.75rem; color:var(--muted); letter-spacing:1.5px;
+    font-size:0.95rem; color:var(--muted); letter-spacing:1.5px;
   }
 
   @keyframes blink {
@@ -379,13 +382,13 @@
   }
   .gol-cat-name {
     font-family:'Bebas Neue',sans-serif;
-    font-size: 1.9rem; letter-spacing: 7px; line-height: 1;
+    font-size: 2.2rem; letter-spacing: 7px; line-height: 1;
     color: var(--yellow);
     text-shadow: 0 0 22px rgba(255,214,0,0.35);
   }
   .gol-cat-sub {
     font-family:'Barlow Condensed',sans-serif;
-    font-size: 0.62rem; letter-spacing: 3px; color: var(--muted);
+    font-size: 0.8rem; letter-spacing: 3px; color: var(--muted);
     text-transform: uppercase; margin-top: 3px;
   }
 
@@ -407,40 +410,40 @@
 
   .gol-rank {
     font-family:'Bebas Neue',sans-serif;
-    font-size: 1.1rem; color: var(--muted);
+    font-size: 1.35rem; color: var(--muted);
     text-align: center; line-height: 1;
   }
-  .gol-row:nth-child(1) .gol-rank { color: var(--yellow); font-size:1.25rem; }
+  .gol-row:nth-child(1) .gol-rank { color: var(--yellow); font-size:1.55rem; }
   .gol-row:nth-child(2) .gol-rank { color: #b0b0b0; }
   .gol-row:nth-child(3) .gol-rank { color: #cd7f32; }
 
   .gol-info { display: flex; flex-direction: column; gap: 1px; min-width: 0; }
   .gol-name {
     font-family:'Barlow Condensed',sans-serif;
-    font-weight:700; font-size:0.9rem; letter-spacing:0.3px;
+    font-weight:700; font-size:1.1rem; letter-spacing:0.3px;
     white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
     color:var(--text);
   }
   .gol-team {
     font-family:'Barlow Condensed',sans-serif;
-    font-size:0.65rem; color:var(--muted); letter-spacing:0.5px;
+    font-size:0.85rem; color:var(--muted); letter-spacing:0.5px;
     white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
   }
   .gol-count {
     font-family:'Bebas Neue',sans-serif;
-    font-size:1.7rem; color:var(--green);
+    font-size:2.1rem; color:var(--green);
     text-align:right; line-height:1;
   }
   .gol-count-unit {
     font-family:'Barlow Condensed',sans-serif;
-    font-size:0.6rem; color:var(--muted); letter-spacing:1px;
+    font-size:0.78rem; color:var(--muted); letter-spacing:1px;
     text-align:right; line-height:1;
   }
 
   .gol-empty {
     flex:1; display:flex; align-items:center; justify-content:center;
     font-family:'Barlow Condensed',sans-serif;
-    font-size:0.78rem; color:var(--muted); letter-spacing:2px;
+    font-size:0.95rem; color:var(--muted); letter-spacing:2px;
     text-transform:uppercase; padding:1.5rem;
     text-align:center;
   }
@@ -448,7 +451,7 @@
   /* ── LIVE TICKER (bottom strip) ── */
   #live-ticker {
     position: relative; z-index: 10;
-    height: 34px; flex-shrink: 0;
+    height: 2.6rem; flex-shrink: 0;
     background: rgba(6,10,7,0.97);
     border-top: 1px solid var(--border);
     display: flex; align-items: center;
@@ -459,7 +462,7 @@
     background: var(--red);
     color: #fff;
     font-family:'Bebas Neue',sans-serif;
-    font-size:0.82rem; letter-spacing:3px;
+    font-size:1rem; letter-spacing:3px;
     padding: 0 14px;
     height: 100%; display:flex; align-items:center;
     margin-right: 10px;
@@ -473,7 +476,7 @@
     display:inline-block;
     animation: ticker-scroll 30s linear infinite;
     font-family:'Barlow Condensed',sans-serif;
-    font-size:0.78rem; letter-spacing:1.5px;
+    font-size:0.95rem; letter-spacing:1.5px;
     color: var(--text);
   }
   @keyframes ticker-scroll {
@@ -485,7 +488,7 @@
   #clock {
     flex-shrink:0;
     font-family:'Bebas Neue',sans-serif;
-    font-size:1.05rem; letter-spacing:3px; color:var(--muted);
+    font-size:1.25rem; letter-spacing:3px; color:var(--muted);
     padding: 0 18px;
   }
 
@@ -509,7 +512,7 @@
     border: 2px solid var(--yellow);
     border-radius: 20px;
     padding: 2.2rem 3rem 2.5rem;
-    min-width: 480px; max-width: 620px;
+    min-width: 30rem; max-width: 38.75rem;
     text-align: center;
     box-shadow:
       0 0 70px rgba(255,214,0,0.22),
@@ -784,7 +787,7 @@
 <header id="tv-header">
   <div class="hdr-logo">
     <img src="https://drive.google.com/thumbnail?id=1MzSmTPE601AthjrlfPZF5Jb6Xqlvz0VJ"
-         alt="CMBP" style="width:40px;height:40px;object-fit:contain;margin-right:10px;vertical-align:middle;filter:drop-shadow(0 0 6px rgba(255,214,0,0.3));">
+         alt="CMBP" style="width:2.5rem;height:2.5rem;object-fit:contain;margin-right:10px;vertical-align:middle;filter:drop-shadow(0 0 6px rgba(255,214,0,0.3));">
     Torneo de Fútbol CMBP
     <span>· TV</span>
   </div>
@@ -1142,7 +1145,7 @@ function fitTeamNames() {
     el.style.fontSize = '';
     if (el.scrollWidth <= el.offsetWidth) return;
     let size = parseFloat(window.getComputedStyle(el).fontSize);
-    while (el.scrollWidth > el.offsetWidth + 1 && size > 7) {
+    while (el.scrollWidth > el.offsetWidth + 1 && size > 13) {
       size -= 0.5;
       el.style.fontSize = size + 'px';
     }
@@ -1482,13 +1485,13 @@ function startProgress() {
   progressRaf = requestAnimationFrame(tick);
 }
 
-/* ── Clock ── */
+/* ── Clock (fixed to Brasília time, GMT-3, regardless of device timezone) ── */
 function updateClock() {
-  const now = new Date();
-  const hh = String(now.getHours()).padStart(2,'0');
-  const mm = String(now.getMinutes()).padStart(2,'0');
+  const time = new Intl.DateTimeFormat('es-PY', {
+    timeZone: 'America/Sao_Paulo', hour: '2-digit', minute: '2-digit', hour12: false
+  }).format(new Date());
   const clockEl = document.getElementById('clock');
-  if (clockEl) clockEl.textContent = `${hh}:${mm}`;
+  if (clockEl) clockEl.textContent = time;
 }
 updateClock();
 setInterval(updateClock, 5000);
