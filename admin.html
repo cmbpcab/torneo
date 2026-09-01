@@ -1187,6 +1187,12 @@
       renderEquiposPanel();
       window.refreshTeamDropdown();
       renderForm(cat);
+      // A roster change (players added/renamed) must also refresh the
+      // already-rendered match rows — their goal/card player <select>
+      // options are baked from window._teams at render time, so without
+      // this they stay stale until a match itself changes or the
+      // operator manually toggles the team-slot dropdown.
+      render(cat, window._matches[cat]);
     });
   });
   window.exportJson = function() {
