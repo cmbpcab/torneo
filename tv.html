@@ -1073,19 +1073,23 @@ function buildBracket(cat) {
   if (hasFinalCol) {
     const finalHtml   = matchCard(finalM   || null);
     const terceroHtml = matchCard(terceroM || null);
+    // The column header already says what this is (e.g. "Final",
+    // "Juego 3", "3.º Lugar") — only add a caption above each card
+    // when both groups share the column and need telling apart.
+    const needsCaptions = hasFinal && hasTercero;
     let groupsHtml = '';
     if (hasFinal) {
       groupsHtml += `
         <div class="bk-final-group">
-          <div class="bk-final-label">${L.finalIcon}</div>
+          ${needsCaptions ? `<div class="bk-final-label">${L.finalIcon}</div>` : ''}
           ${finalHtml}
         </div>`;
     }
-    if (hasFinal && hasTercero) groupsHtml += `<div class="bk-divider"></div>`;
+    if (needsCaptions) groupsHtml += `<div class="bk-divider"></div>`;
     if (hasTercero) {
       groupsHtml += `
         <div class="bk-final-group">
-          <div class="bk-tercero-label">${TERCERO_ICON}</div>
+          ${needsCaptions ? `<div class="bk-tercero-label">${TERCERO_ICON}</div>` : ''}
           ${terceroHtml}
         </div>`;
     }
