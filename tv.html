@@ -394,14 +394,18 @@
 
   .gol-list {
     flex:1; overflow:hidden;
-    padding: 0.5rem 0;
+    padding: calc(0.5rem * var(--gol-scale, 1)) 0;
+    /* --gol-scale is set by fitGolLists() so all rows (all 7 ranked
+       scorers, including the team name on the last one) always fit the
+       card's actual height on screen, instead of a fixed size that may
+       or may not fit depending on the TV's resolution. */
   }
 
   .gol-row {
     display: grid;
-    grid-template-columns: 2rem 1fr 2.5rem;
+    grid-template-columns: calc(2rem * var(--gol-scale, 1)) 1fr calc(2.5rem * var(--gol-scale, 1));
     align-items: center;
-    padding: 0.42rem 1rem;
+    padding: calc(0.42rem * var(--gol-scale, 1)) 1rem;
     gap: 8px;
     transition: background 0.15s;
     border-bottom: 1px solid rgba(0,200,83,0.05);
@@ -410,33 +414,33 @@
 
   .gol-rank {
     font-family:'Bebas Neue',sans-serif;
-    font-size: 1.35rem; color: var(--muted);
+    font-size: calc(1.35rem * var(--gol-scale, 1)); color: var(--muted);
     text-align: center; line-height: 1;
   }
-  .gol-row:nth-child(1) .gol-rank { color: var(--yellow); font-size:1.55rem; }
+  .gol-row:nth-child(1) .gol-rank { color: var(--yellow); font-size:calc(1.55rem * var(--gol-scale, 1)); }
   .gol-row:nth-child(2) .gol-rank { color: #b0b0b0; }
   .gol-row:nth-child(3) .gol-rank { color: #cd7f32; }
 
   .gol-info { display: flex; flex-direction: column; gap: 1px; min-width: 0; }
   .gol-name {
     font-family:'Barlow Condensed',sans-serif;
-    font-weight:700; font-size:1.1rem; letter-spacing:0.3px;
+    font-weight:700; font-size:calc(1.1rem * var(--gol-scale, 1)); letter-spacing:0.3px;
     white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
     color:var(--text);
   }
   .gol-team {
     font-family:'Barlow Condensed',sans-serif;
-    font-size:0.85rem; color:var(--muted); letter-spacing:0.5px;
+    font-size:calc(0.85rem * var(--gol-scale, 1)); color:var(--muted); letter-spacing:0.5px;
     white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
   }
   .gol-count {
     font-family:'Bebas Neue',sans-serif;
-    font-size:2.1rem; color:var(--green);
+    font-size:calc(2.1rem * var(--gol-scale, 1)); color:var(--green);
     text-align:right; line-height:1;
   }
   .gol-count-unit {
     font-family:'Barlow Condensed',sans-serif;
-    font-size:0.78rem; color:var(--muted); letter-spacing:1px;
+    font-size:calc(0.78rem * var(--gol-scale, 1)); color:var(--muted); letter-spacing:1px;
     text-align:right; line-height:1;
   }
 
@@ -1202,6 +1206,22 @@ function fitTeamNames() {
   });
 }
 
+/* Shrinks each goleadores card's row scale (font-size + padding, via
+   the --gol-scale CSS var) just enough that all 7 ranked rows fit
+   inside the card without being clipped by .gol-list's overflow:hidden
+   — instead of a fixed size that may or may not fit depending on the
+   TV's actual resolution. */
+function fitGolLists() {
+  document.querySelectorAll('.gol-list').forEach(el => {
+    el.style.setProperty('--gol-scale', 1);
+    let scale = 1;
+    while (el.scrollHeight > el.clientHeight + 1 && scale > 0.5) {
+      scale -= 0.05;
+      el.style.setProperty('--gol-scale', scale.toFixed(2));
+    }
+  });
+}
+
 /* ── Render all ── */
 function renderAll() {
   CATEGORIES.forEach(cat => buildBracket(cat));
@@ -1492,6 +1512,7 @@ CATEGORIES.forEach(cat => {
     buildBracket(cat);
     requestAnimationFrame(fitTeamNames);
     buildGoleadores();
+    requestAnimationFrame(fitGolLists);
     buildTicker();
   });
 });
@@ -1513,6 +1534,10 @@ function goToSlide(idx) {
 
   // Update header name
   document.getElementById('hdr-slide-name').textContent = SLIDE_NAMES[currentSlide];
+
+  // Goleadores cards are display:none while their slide isn't active, so
+  // they have no measurable height until now — (re)fit only on arrival.
+  if (currentSlide === 3) requestAnimationFrame(fitGolLists);
 
   // Restart progress
   progressStart = Date.now();
@@ -1552,6 +1577,7 @@ setInterval(updateClock, 5000);
 /* ── Boot ── */
 renderAll();
 requestAnimationFrame(fitTeamNames);
+requestAnimationFrame(fitGolLists);
 scheduleNext();
 startProgress();
 </script>
