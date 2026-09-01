@@ -1119,7 +1119,7 @@ function buildGoleadores() {
         if (!scorers[key]) scorers[key] = { name:key, team:'', count:0 };
         scorers[key].count++;
         if (!scorers[key].team && g.teamSlot) {
-          scorers[key].team = g.teamSlot === '1' ? (m.team1||'') : (m.team2||'');
+          scorers[key].team = g.teamSlot == 1 ? (m.team1||'') : (m.team2||'');
         }
       });
     });
