@@ -452,6 +452,69 @@
     text-align:center;
   }
 
+  /* ══════════════════════════════
+     PÓDIO SLIDE
+  ══════════════════════════════ */
+  .podio-wrap {
+    flex: 1;
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 1.5rem;
+    min-height: 0;
+  }
+
+  .podio-col {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    display: flex; flex-direction: column;
+    overflow: hidden;
+  }
+
+  .podio-col-hdr {
+    padding: 0.85rem 1rem 0.7rem;
+    border-bottom: 3px solid var(--yellow);
+    background: linear-gradient(180deg, rgba(255,214,0,0.07) 0%, transparent 100%);
+    text-align: center;
+    flex-shrink: 0;
+  }
+  .podio-cat-name {
+    font-family:'Bebas Neue',sans-serif;
+    font-size: 2.2rem; letter-spacing: 7px; line-height: 1;
+    color: var(--yellow);
+    text-shadow: 0 0 22px rgba(255,214,0,0.35);
+  }
+  .podio-cat-sub {
+    font-family:'Barlow Condensed',sans-serif;
+    font-size: 0.8rem; letter-spacing: 3px; color: var(--muted);
+    text-transform: uppercase; margin-top: 3px;
+  }
+
+  .podio-body {
+    flex: 1;
+    display: flex; flex-direction: column;
+    justify-content: center;
+    gap: 1.1rem;
+    padding: 1rem 1.3rem;
+  }
+
+  .podio-row {
+    display: flex; align-items: center; gap: 0.9rem;
+  }
+  .podio-medal { font-size: 2.3rem; line-height: 1; flex-shrink: 0; width: 2.6rem; text-align: center; }
+
+  .podio-team-name {
+    font-family:'Barlow Condensed', sans-serif;
+    font-weight: 700; font-size: 1.35rem; letter-spacing: 0.5px;
+    color: var(--text);
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+    min-width: 0;
+  }
+  .podio-row.gold   .podio-team-name { color: var(--yellow); font-size: 1.55rem; }
+  .podio-row.silver .podio-team-name { color: #c0c8c1; }
+  .podio-row.bronze .podio-team-name { color: #b4823c; }
+  .podio-team-name.pending { color: var(--muted); font-style: italic; font-weight: 400; }
+
   /* ── LIVE TICKER (bottom strip) ── */
   #live-ticker {
     position: relative; z-index: 10;
@@ -801,6 +864,7 @@
     <div class="hdr-dot"        id="dot-1"></div>
     <div class="hdr-dot"        id="dot-2"></div>
     <div class="hdr-dot"        id="dot-3"></div>
+    <div class="hdr-dot"        id="dot-4"></div>
   </div>
 </header>
 
@@ -832,6 +896,12 @@
   <div class="slide" id="slide-3">
     <div class="slide-title">🏅 Goleadores</div>
     <div class="gol-wrap" id="gol-wrap"></div>
+  </div>
+
+  <!-- SLIDE 4: Pódio -->
+  <div class="slide" id="slide-4">
+    <div class="slide-title">🏆 Pódio</div>
+    <div class="podio-wrap" id="podio-wrap"></div>
   </div>
 
 </div>
@@ -891,7 +961,7 @@ const db  = getDatabase(app);
 /* ── Constants ── */
 const CATEGORIES  = ['oficiales','femenino','suboficiales'];
 const CAT_LABELS  = { oficiales:'Oficiales', femenino:'Femenino', suboficiales:'Suboficiales' };
-const SLIDE_NAMES = ['Oficiales','Femenino','Suboficiales','Goleadores'];
+const SLIDE_NAMES = ['Oficiales','Femenino','Suboficiales','Goleadores','Pódio'];
 const SLIDE_DURATION_MS = 20000;   // 20 s per slide
 
 /* ── State ── */
@@ -913,6 +983,164 @@ function getWinner(m) {
   if (Number(m.score1) > Number(m.score2)) return m.team1;
   if (Number(m.score2) > Number(m.score1)) return m.team2;
   return null;
+}
+
+function getLoser(m) {
+  const w = getWinner(m);
+  if (!w) return null;
+  return w === m.team1 ? m.team2 : m.team1;
+}
+
+// Suboficiales/Femenino: 1st/2nd/3rd by round-robin wins (a penalty
+// shoot-out win counts the same as a regular win — getWinner() already
+// treats it that way). Only resolves once every scheduled match for
+// the category has finished — a partial table would misrepresent an
+// in-progress triangular. Mirrors index.html's podium logic exactly.
+//
+// Tie-break order: 1) head-to-head, 2) goal difference, 3) goals
+// scored (regulation time only), 4) fewer cards (yellow + red
+// combined), 5) penalty shoot-out goal difference.
+//
+// With exactly 3 teams playing each other once (3 games, 3 wins
+// total), a tie in wins can only happen two ways — either all 3 teams
+// are tied at 1 win each, which with only 3 results is always a cycle
+// (A beat B, B beat C, C beat A back), or no tie at all (2-1-0). So
+// head-to-head only ever gets consulted for a clean 2-team tie, where
+// it's well-defined; a 3-way tie skips straight to criteria 2-5.
+function computeRoundRobinStandings(cat) {
+  const all      = Object.values(allMatches[cat] || {});
+  const finished = all.filter(m => m.status === 'finished');
+  if (!all.length || finished.length < all.length) return null;
+
+  const stats = {};
+  const ensure = t => stats[t] || (stats[t] = { team: t, wins: 0, gf: 0, ga: 0, cards: 0, penGf: 0, penGa: 0 });
+
+  finished.forEach(m => {
+    const s1 = Number(m.score1) || 0, s2 = Number(m.score2) || 0;
+    const t1 = ensure(m.team1), t2 = ensure(m.team2);
+    t1.gf += s1; t1.ga += s2;
+    t2.gf += s2; t2.ga += s1;
+
+    const w = getWinner(m);
+    if (w === m.team1) t1.wins++;
+    else if (w === m.team2) t2.wins++;
+
+    toArr(m.cardsData).forEach(c => {
+      if (c.teamSlot == 1) t1.cards++;
+      else if (c.teamSlot == 2) t2.cards++;
+    });
+
+    if (m.penalty) {
+      const p1 = Number(m.pen1) || 0, p2 = Number(m.pen2) || 0;
+      t1.penGf += p1; t1.penGa += p2;
+      t2.penGf += p2; t2.penGa += p1;
+    }
+  });
+
+  const byTiebreakCriteria = (a, b) =>
+    ((b.gf - b.ga) - (a.gf - a.ga))
+    || (b.gf - a.gf)
+    || (a.cards - b.cards)
+    || ((b.penGf - b.penGa) - (a.penGf - a.penGa))
+    || a.team.localeCompare(b.team);
+
+  const tiers = {};
+  Object.values(stats).forEach(s => (tiers[s.wins] = tiers[s.wins] || []).push(s));
+
+  return Object.keys(tiers).sort((a, b) => b - a).flatMap(wins => {
+    const tier = tiers[wins];
+    if (tier.length === 2) {
+      const [a, b] = tier;
+      const h2h = finished.find(m =>
+        (m.team1 === a.team && m.team2 === b.team) || (m.team1 === b.team && m.team2 === a.team));
+      const w = h2h && getWinner(h2h);
+      if (w === a.team) return [a, b];
+      if (w === b.team) return [b, a];
+      return tier.sort(byTiebreakCriteria);
+    }
+    return tier.sort(byTiebreakCriteria);
+  });
+}
+
+// A team is mathematically guaranteed last place (3.º puesto) once it
+// has played every one of its scheduled round-robin games and every
+// other team's win count already matches or beats that final total.
+// Mirrors index.html's podium logic exactly.
+function computeGuaranteedThird(cat) {
+  const all = Object.values(allMatches[cat] || {});
+  if (!all.length) return null;
+
+  const totalGames = {}, playedGames = {}, wins = {};
+  all.forEach(m => {
+    [m.team1, m.team2].forEach(t => { if (t) totalGames[t] = (totalGames[t] || 0) + 1; });
+    if (m.status === 'finished') {
+      if (m.team1) playedGames[m.team1] = (playedGames[m.team1] || 0) + 1;
+      if (m.team2) playedGames[m.team2] = (playedGames[m.team2] || 0) + 1;
+      const w = getWinner(m);
+      if (w) wins[w] = (wins[w] || 0) + 1;
+    }
+  });
+
+  const teams = Object.keys(totalGames);
+  if (teams.length < 3) return null;
+
+  for (const t of teams) {
+    if ((playedGames[t] || 0) < totalGames[t]) continue;
+    const finalWins = wins[t] || 0;
+    const others = teams.filter(x => x !== t);
+    if (others.every(o => (wins[o] || 0) >= finalWins)) return t;
+  }
+  return null;
+}
+
+/* ── Pódio builder ── */
+function buildPodio() {
+  const el = document.getElementById('podio-wrap');
+  if (!el) return;
+  let html = '';
+
+  CATEGORIES.forEach(cat => {
+    const matches = allMatches[cat] || {};
+    let champion = null, runner = null, third = null;
+
+    if (cat === 'suboficiales' || cat === 'femenino') {
+      const standings = computeRoundRobinStandings(cat);
+      if (standings) {
+        champion = standings[0]?.team || null;
+        runner   = standings[1]?.team || null;
+        third    = standings[2]?.team || null;
+      } else {
+        third = computeGuaranteedThird(cat);
+      }
+    } else {
+      const finalM   = Object.values(matches).find(m => m.phase === 'final'   && m.status === 'finished');
+      const terceroM = Object.values(matches).find(m => m.phase === 'tercero' && m.status === 'finished');
+      champion = finalM   ? getWinner(finalM)   : null;
+      runner   = finalM   ? getLoser(finalM)    : null;
+      third    = terceroM ? getWinner(terceroM) : null;
+    }
+
+    const row = (medal, cls, name) => `
+      <div class="podio-row ${cls}">
+        <div class="podio-medal">${medal}</div>
+        <div class="podio-team-name ${name?'':'pending'}">${name || 'Por definir'}</div>
+      </div>`;
+
+    html += `
+      <div class="podio-col">
+        <div class="podio-col-hdr">
+          <div class="podio-cat-name">${CAT_LABELS[cat]}</div>
+          <div class="podio-cat-sub">🏆 Pódio</div>
+        </div>
+        <div class="podio-body">
+          ${row('🥇','gold',   champion)}
+          ${row('🥈','silver', runner)}
+          ${row('🥉','bronze', third)}
+        </div>
+      </div>`;
+  });
+
+  el.innerHTML = html;
 }
 
 function compactGoals(text) {
@@ -1226,6 +1454,7 @@ function fitGolLists() {
 function renderAll() {
   CATEGORIES.forEach(cat => buildBracket(cat));
   buildGoleadores();
+  buildPodio();
   buildTicker();
 }
 
@@ -1513,6 +1742,7 @@ CATEGORIES.forEach(cat => {
     requestAnimationFrame(fitTeamNames);
     buildGoleadores();
     requestAnimationFrame(fitGolLists);
+    buildPodio();
     buildTicker();
   });
 });
@@ -1521,7 +1751,7 @@ CATEGORIES.forEach(cat => {
    CAROUSEL LOGIC
 ══════════════════════ */
 function goToSlide(idx) {
-  const total = 4;
+  const total = 5;
   const prev = currentSlide;
   currentSlide = ((idx % total) + total) % total;
 
