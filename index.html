@@ -951,6 +951,41 @@
     });
   }
 
+  // A team is mathematically guaranteed last place (3.º puesto) once it
+  // has played every one of its scheduled round-robin games and every
+  // other team's win count already matches or beats that final total —
+  // the others can only add wins from here, never lose the ones they
+  // already have, so there's no possible outcome left that lets this
+  // team finish above them. Only meaningful before the triangular is
+  // fully decided; once it is, computeRoundRobinStandings already
+  // covers 3.º puesto (and everything else) directly.
+  function computeGuaranteedThird(cat) {
+    const all = Object.values(allMatches[cat] || {});
+    if (!all.length) return null;
+
+    const totalGames = {}, playedGames = {}, wins = {};
+    all.forEach(m => {
+      [m.team1, m.team2].forEach(t => { if (t) totalGames[t] = (totalGames[t] || 0) + 1; });
+      if (m.status === 'finished') {
+        if (m.team1) playedGames[m.team1] = (playedGames[m.team1] || 0) + 1;
+        if (m.team2) playedGames[m.team2] = (playedGames[m.team2] || 0) + 1;
+        const w = getWinner(m);
+        if (w) wins[w] = (wins[w] || 0) + 1;
+      }
+    });
+
+    const teams = Object.keys(totalGames);
+    if (teams.length < 3) return null;
+
+    for (const t of teams) {
+      if ((playedGames[t] || 0) < totalGames[t]) continue; // still has games left — not final yet
+      const finalWins = wins[t] || 0;
+      const others = teams.filter(x => x !== t);
+      if (others.every(o => (wins[o] || 0) >= finalWins)) return t;
+    }
+    return null;
+  }
+
   function renderPodio() {
     const el = document.getElementById('cat-podio');
     let hasAny = false;
@@ -966,6 +1001,11 @@
           runner   = standings[1]?.team || null;
           third    = standings[2]?.team || null;
           categoryHasAny = true;
+        } else {
+          // Triangular still in progress — 1st/2nd can't be shown yet,
+          // but 3rd may already be mathematically locked in.
+          third = computeGuaranteedThird(cat);
+          if (third) categoryHasAny = true;
         }
       } else {
         const finalM   = Object.values(matches).find(m => m.phase === 'final'   && m.status === 'finished');
