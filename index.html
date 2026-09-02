@@ -705,7 +705,7 @@
 
   const PHASE_LABELS = {
     cuartos:'Cuartos de final', semi:'Semifinales',
-    tercero:'Disputa por el 3.º lugar', final:'Final'
+    tercero:'Disputa por el 3.º puesto', final:'Final'
   };
   // Suboficiales/Femenino are a 3-team round-robin stored in the same
   // cuartos/semi/final slots as the oficiales knockout bracket (for
@@ -773,8 +773,8 @@
         const w2  = m.status==='finished' && (m.penalty ? Number(m.pen2)>Number(m.pen1) : Number(m.score2)>Number(m.score1));
         const crown1 = isFinal   && w1 ? `<div class="champion-crown">👑</div>` : isFinal && !w1 && w2 ? `<div class="champion-crown">🥈</div>` : isTercero && w1 ? `<div class="champion-crown">🥉</div>` : '';
         const crown2 = isFinal   && w2 ? `<div class="champion-crown">👑</div>` : isFinal && !w2 && w1 ? `<div class="champion-crown">🥈</div>` : isTercero && w2 ? `<div class="champion-crown">🥉</div>` : '';
-        const label1 = isFinal   && w1 ? `<div class="champion-label">Campeón</div>` : isFinal && !w1 && w2 ? `<div class="champion-label" style="color:#c0c8c1">2.º lugar</div>` : isTercero && w1 ? `<div class="bronze-label">3.er lugar</div>` : '';
-        const label2 = isFinal   && w2 ? `<div class="champion-label">Campeón</div>` : isFinal && !w2 && w1 ? `<div class="champion-label" style="color:#c0c8c1">2.º lugar</div>` : isTercero && w2 ? `<div class="bronze-label">3.er lugar</div>` : '';
+        const label1 = isFinal   && w1 ? `<div class="champion-label">Campeón</div>` : isFinal && !w1 && w2 ? `<div class="champion-label" style="color:#c0c8c1">2.º lugar</div>` : isTercero && w1 ? `<div class="bronze-label">3.er puesto</div>` : '';
+        const label2 = isFinal   && w2 ? `<div class="champion-label">Campeón</div>` : isFinal && !w2 && w1 ? `<div class="champion-label" style="color:#c0c8c1">2.º lugar</div>` : isTercero && w2 ? `<div class="bronze-label">3.er puesto</div>` : '';
 
         const extraClass = phase==='cuartos' ? 'card-cuartos' : phase==='semi' ? 'card-semi' : phase==='final' ? 'card-final' : phase==='tercero' ? 'card-tercero' : '';
 
@@ -877,18 +877,105 @@
     el.innerHTML = html;
   }
 
+  // Suboficiales/Femenino: 1st/2nd/3rd by round-robin wins (a penalty
+  // shoot-out win counts the same as a regular win — getWinner() already
+  // treats it that way). Only resolves once every scheduled match for
+  // the category has finished — a partial table would misrepresent an
+  // in-progress triangular.
+  //
+  // Tie-break order: 1) head-to-head, 2) goal difference, 3) goals
+  // scored (regulation time only — score1/score2 never include penalty
+  // shoot-out goals in this app's data model), 4) fewer cards (yellow +
+  // red combined), 5) penalty shoot-out goal difference across the
+  // matches that went to penalties.
+  //
+  // With exactly 3 teams playing each other once (3 games, 3 wins
+  // total), a tie in wins can only happen two ways — either all 3 teams
+  // are tied at 1 win each, which with only 3 results is always a cycle
+  // (A beat B, B beat C, C beat A back), or no tie at all (2-1-0). So
+  // head-to-head only ever gets consulted for a clean 2-team tie, where
+  // it's well-defined; a 3-way tie skips straight to criteria 2-5,
+  // since head-to-head around a cycle has no answer.
+  function computeRoundRobinStandings(cat) {
+    const all      = Object.values(allMatches[cat] || {});
+    const finished = all.filter(m => m.status === 'finished');
+    if (!all.length || finished.length < all.length) return null;
+
+    const stats = {};
+    const ensure = t => stats[t] || (stats[t] = { team: t, wins: 0, gf: 0, ga: 0, cards: 0, penGf: 0, penGa: 0 });
+
+    finished.forEach(m => {
+      const s1 = Number(m.score1) || 0, s2 = Number(m.score2) || 0;
+      const t1 = ensure(m.team1), t2 = ensure(m.team2);
+      t1.gf += s1; t1.ga += s2;
+      t2.gf += s2; t2.ga += s1;
+
+      const w = getWinner(m);
+      if (w === m.team1) t1.wins++;
+      else if (w === m.team2) t2.wins++;
+
+      toArr(m.cardsData).forEach(c => {
+        if (c.teamSlot == 1) t1.cards++;
+        else if (c.teamSlot == 2) t2.cards++;
+      });
+
+      if (m.penalty) {
+        const p1 = Number(m.pen1) || 0, p2 = Number(m.pen2) || 0;
+        t1.penGf += p1; t1.penGa += p2;
+        t2.penGf += p2; t2.penGa += p1;
+      }
+    });
+
+    const byTiebreakCriteria = (a, b) =>
+      ((b.gf - b.ga) - (a.gf - a.ga))          // goal difference
+      || (b.gf - a.gf)                          // goals scored
+      || (a.cards - b.cards)                    // fewer cards
+      || ((b.penGf - b.penGa) - (a.penGf - a.penGa)) // penalty shoot-out goal difference
+      || a.team.localeCompare(b.team);          // stable fallback
+
+    const tiers = {};
+    Object.values(stats).forEach(s => (tiers[s.wins] = tiers[s.wins] || []).push(s));
+
+    return Object.keys(tiers).sort((a, b) => b - a).flatMap(wins => {
+      const tier = tiers[wins];
+      if (tier.length === 2) {
+        const [a, b] = tier;
+        const h2h = finished.find(m =>
+          (m.team1 === a.team && m.team2 === b.team) || (m.team1 === b.team && m.team2 === a.team));
+        const w = h2h && getWinner(h2h);
+        if (w === a.team) return [a, b];
+        if (w === b.team) return [b, a];
+        return tier.sort(byTiebreakCriteria);
+      }
+      return tier.sort(byTiebreakCriteria);
+    });
+  }
+
   function renderPodio() {
     const el = document.getElementById('cat-podio');
     let hasAny = false;
     let html = '<div class="podio-grid">';
     CATEGORIES.forEach(cat => {
-      const matches  = allMatches[cat] || {};
-      const finalM   = Object.values(matches).find(m => m.phase === 'final'   && m.status === 'finished');
-      const terceroM = Object.values(matches).find(m => m.phase === 'tercero' && m.status === 'finished');
-      if (finalM || terceroM) hasAny = true;
-      const champion = finalM   ? getWinner(finalM)   : null;
-      const runner   = finalM   ? getLoser(finalM)    : null;
-      const third    = terceroM ? getWinner(terceroM)  : null;
+      const matches = allMatches[cat] || {};
+      let champion = null, runner = null, third = null, categoryHasAny = false;
+
+      if (cat === 'suboficiales' || cat === 'femenino') {
+        const standings = computeRoundRobinStandings(cat);
+        if (standings) {
+          champion = standings[0]?.team || null;
+          runner   = standings[1]?.team || null;
+          third    = standings[2]?.team || null;
+          categoryHasAny = true;
+        }
+      } else {
+        const finalM   = Object.values(matches).find(m => m.phase === 'final'   && m.status === 'finished');
+        const terceroM = Object.values(matches).find(m => m.phase === 'tercero' && m.status === 'finished');
+        champion = finalM   ? getWinner(finalM)   : null;
+        runner   = finalM   ? getLoser(finalM)    : null;
+        third    = terceroM ? getWinner(terceroM) : null;
+        categoryHasAny = !!(finalM || terceroM);
+      }
+      if (categoryHasAny) hasAny = true;
       html += `
         <div class="podio-category">
           <div class="podio-cat-title">${CAT_LABELS[cat]||cat}</div>

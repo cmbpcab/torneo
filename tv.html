@@ -995,11 +995,11 @@ function matchCard(m, isWideCol) {
    3.º-lugar block or trigger the championship splash, since the winner
    there is decided by standings, not by that single match. */
 const BRACKET_LABELS = {
-  oficiales:    { cuartos:'Cuartos de Final', semi:'Semifinal', final:'Final',   both:'Final &amp; 3.º Lugar', finalIcon:'🏆 Final',   pad:true  },
+  oficiales:    { cuartos:'Cuartos de Final', semi:'Semifinal', final:'Final',   both:'Final &amp; 3.º Puesto', finalIcon:'🏆 Final',   pad:true  },
   suboficiales: { cuartos:'Juego 1',          semi:'Juego 2',   final:'Juego 3', both:'Juego 3',               finalIcon:'⚽ Juego 3', pad:false },
   femenino:     { cuartos:'Juego 1',          semi:'Juego 2',   final:'Juego 3', both:'Juego 3',               finalIcon:'⚽ Juego 3', pad:false },
 };
-const TERCERO_ICON = '🥉 3.º Lugar';
+const TERCERO_ICON = '🥉 3.º Puesto';
 
 /* ── Bracket builder ──
    Phases with zero registered matches are omitted entirely (column +
@@ -1099,7 +1099,7 @@ function buildBracket(cat) {
     }
     html += `
     <div class="bracket-col">
-      <div class="bracket-col-header col-final">${hasFinal && hasTercero ? L.both : hasFinal ? L.final : '3.º Lugar'}</div>
+      <div class="bracket-col-header col-final">${hasFinal && hasTercero ? L.both : hasFinal ? L.final : '3.º Puesto'}</div>
       <div class="bracket-col-final-matches">${groupsHtml}</div>
     </div>`;
   }
