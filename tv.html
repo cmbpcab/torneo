@@ -1335,6 +1335,28 @@ function buildBracket(cat) {
   el.innerHTML = html;
 }
 
+// Ordem de precedência por posto/graduação (mais antigo → mais moderno),
+// usada como critério de desempate no ranking de goleadores quando o
+// número de gols é igual. Reconhece o posto pelo prefixo do nome do
+// jogador (ex.: "Cnel Fox" → Cnel). Postos não reconhecidos vão pro final.
+const RANK_ORDER = [
+  'gral div', 'gral brig', 'gral',
+  'cnel', 'tcnel', 'my', 'cap',
+  'tte 1°', 'tte 1ª', 'tte',
+  'stte',
+  'som', 'sop', 'so',
+  'sgto a', 'sgto 1°', 'sgto 1ª', 'sgto',
+  'vsgto 1°', 'vsgto 1ª', 'vsgto'
+];
+const RANK_ORDER_BY_LENGTH = [...RANK_ORDER].sort((a, b) => b.length - a.length);
+function rankPrecedence(playerName) {
+  const n = (playerName || '').toLowerCase().trim();
+  for (const rank of RANK_ORDER_BY_LENGTH) {
+    if (n === rank || n.startsWith(rank + ' ')) return RANK_ORDER.indexOf(rank);
+  }
+  return RANK_ORDER.length;
+}
+
 /* ── Goleadores builder ── */
 function buildGoleadores() {
   const el = document.getElementById('gol-wrap');
@@ -1356,7 +1378,9 @@ function buildGoleadores() {
       });
     });
 
-    const list = Object.values(scorers).sort((a,b) => b.count-a.count).slice(0,7);
+    const list = Object.values(scorers)
+      .sort((a,b) => b.count-a.count || rankPrecedence(a.name)-rankPrecedence(b.name))
+      .slice(0,7);
 
     html += `
       <div class="gol-col">

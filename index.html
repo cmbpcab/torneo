@@ -832,6 +832,29 @@
     return order.map(n => counts[n] > 1 ? `${n} (${counts[n]})` : n).join('\n');
   }
 
+  // Ordem de precedência por posto/graduação (mais antigo → mais moderno),
+  // usada como critério de desempate no ranking de goleadores quando o
+  // número de gols é igual (antiguidade tem prioridade sobre quem fez o
+  // gol primeiro). Reconhece o posto pelo prefixo do nome do jogador
+  // (ex.: "Cnel Fox" → Cnel). Postos não reconhecidos vão para o final.
+  const RANK_ORDER = [
+    'gral div', 'gral brig', 'gral',
+    'cnel', 'tcnel', 'my', 'cap',
+    'tte 1°', 'tte 1ª', 'tte',
+    'stte',
+    'som', 'sop', 'so',
+    'sgto a', 'sgto 1°', 'sgto 1ª', 'sgto',
+    'vsgto 1°', 'vsgto 1ª', 'vsgto'
+  ];
+  const RANK_ORDER_BY_LENGTH = [...RANK_ORDER].sort((a, b) => b.length - a.length);
+  function rankPrecedence(playerName) {
+    const n = (playerName || '').toLowerCase().trim();
+    for (const rank of RANK_ORDER_BY_LENGTH) {
+      if (n === rank || n.startsWith(rank + ' ')) return RANK_ORDER.indexOf(rank);
+    }
+    return RANK_ORDER.length;
+  }
+
   function renderGoleadores() {
     const el = document.getElementById('cat-goleadores');
     if (!el) return;
@@ -850,7 +873,7 @@
 
       const list = Object.entries(scorers)
         .map(([k, count]) => { const [player, team] = k.split('||'); return { player, team, count }; })
-        .sort((a, b) => b.count - a.count);
+        .sort((a, b) => b.count - a.count || rankPrecedence(a.player) - rankPrecedence(b.player));
 
       html += `<div class="gol-category">
         <div class="gol-cat-title">⚽ ${CAT_LABELS[cat]}</div>`;
