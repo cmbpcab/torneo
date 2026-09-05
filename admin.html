@@ -439,6 +439,83 @@
       ?.players || [];
   }
 
+  // ── ESPEJO DE SÚMULA (para imprimir y completar a mano durante el partido) ──
+  // Mismo formato que las planillas "INFORME DE PARTIDO" usadas en ediciones
+  // anteriores: nombres pre-cargados desde el roster registrado, casillas en
+  // blanco para Nº/Goles/Tarjetas/Juez/Auxiliares/Horarios, que se llenan a mano.
+  window.printSumula = function(cat, id) {
+    const m = (window._matches[cat] || {})[id];
+    if (!m) return;
+    const team1 = m.team1 || 'Equipo A';
+    const team2 = m.team2 || 'Equipo B';
+    const p1 = getTeamPlayers(cat, team1);
+    const p2 = getTeamPlayers(cat, team2);
+    const rows = Math.max(p1.length, p2.length, 15);
+
+    const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+
+    let bodyRows = '';
+    for (let i = 0; i < rows; i++) {
+      bodyRows += `<tr>
+        <td class="name">${esc(p1[i] || '')}</td><td class="num"></td><td class="chk"></td><td class="chk"></td><td class="chk"></td>
+        <td class="name">${esc(p2[i] || '')}</td><td class="num"></td><td class="chk"></td><td class="chk"></td><td class="chk"></td>
+      </tr>`;
+    }
+
+    const html = `<!DOCTYPE html><html><head><meta charset="utf-8">
+    <title>Súmula — ${esc(team1)} x ${esc(team2)}</title>
+    <style>
+      @media print { .no-print { display:none } @page { size: A4 portrait; margin: 12mm } }
+      body{font-family:Arial,Helvetica,sans-serif;color:#111;padding:16px;max-width:900px;margin:0 auto}
+      h1{font-size:1.1rem;text-align:center;margin:0 0 2px}
+      h2{font-size:0.85rem;text-align:center;margin:0 0 14px;font-weight:400;color:#444}
+      .meta{display:flex;flex-wrap:wrap;gap:6px 24px;font-size:0.8rem;margin-bottom:10px}
+      .meta div{border-bottom:1px solid #999;padding:2px 4px;min-width:140px}
+      table{width:100%;border-collapse:collapse;font-size:0.72rem;margin-bottom:10px}
+      th,td{border:1px solid #333;padding:3px 4px}
+      th{background:#eee;text-align:center;font-size:0.68rem}
+      td.name{min-width:150px}
+      td.num{width:26px}
+      td.chk{width:26px}
+      .teams-hdr th{font-size:0.78rem;background:#ddd}
+      .footer{display:flex;justify-content:space-between;gap:20px;font-size:0.78rem;margin-top:16px}
+      .footer div{flex:1;border-top:1px solid #333;padding-top:4px;text-align:center}
+      .obs{border:1px solid #333;min-height:50px;padding:4px;font-size:0.75rem;margin-top:10px}
+      .print-btn{display:block;margin:0 auto 16px;padding:8px 20px;font-size:0.9rem;cursor:pointer}
+    </style></head><body>
+      <button class="print-btn no-print" onclick="window.print()">🖨 Imprimir</button>
+      <h1>INFORME DE PARTIDO — TORNEO CMBP</h1>
+      <h2>${esc(CAT_LABELS[cat] || cat)} · ${esc(PHASE_LABELS[m.phase] || m.phase || '')}${m.code ? ' · Partido nº ' + esc(m.code) : ''}</h2>
+      <div class="meta">
+        <div>Fecha: ${esc(m.time || '')}</div>
+        <div>Horario inicio: _______</div>
+        <div>Horario final: _______</div>
+        <div>Juez: _______________________</div>
+        <div>Auxiliares: _______________________</div>
+      </div>
+      <table>
+        <tr class="teams-hdr"><th colspan="5">${esc(team1)}</th><th colspan="5">${esc(team2)}</th></tr>
+        <tr><th>Nombres</th><th>Nº</th><th>Goles</th><th>T.Am</th><th>T.Roja</th>
+            <th>Nombres</th><th>Nº</th><th>Goles</th><th>T.Am</th><th>T.Roja</th></tr>
+        ${bodyRows}
+      </table>
+      <div class="footer">
+        <div>Entrenador — ${esc(team1)}</div>
+        <div>Entrenador — ${esc(team2)}</div>
+      </div>
+      <div class="obs"><strong>Observaciones / Goles / Tarjetas:</strong></div>
+      <div class="footer">
+        <div>Firma Juez</div>
+        <div>Firma Auxiliar</div>
+        <div>Informe</div>
+      </div>
+    </body></html>`;
+
+    const w = window.open('', '_blank');
+    if (!w) { alert('El navegador bloqueó la ventana. Permití pop-ups para imprimir la súmula.'); return; }
+    w.document.open(); w.document.write(html); w.document.close();
+  };
+
   // ── TEAM DROPDOWN ──
   // Rebuild the team-name <select> marking already-registered teams as disabled
   window.refreshTeamDropdown = function() {
@@ -1058,6 +1135,7 @@
               ${m.status==='pending'||m.status==='live'?'disabled':''}>↺ Resetear</button>
             <button class="btn btn-sm btn-blue"   onclick="toggleEdit('${id}')"
               ${m.status==='live'?'disabled':''}>✎ Editar</button>
+            <button class="btn btn-sm btn-blue"   onclick="printSumula('${cat}','${id}')">🖨 Súmula</button>
             <button class="btn btn-sm btn-danger" onclick="deleteMatch('${cat}','${id}')">✕</button>
           </div>
         </div>
